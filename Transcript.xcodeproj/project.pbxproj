@@ -16,6 +16,7 @@
 		A1000007 /* SpeakerDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000009 /* SpeakerDetector.swift */; };
 		A1000008 /* OutputGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* OutputGenerator.swift */; };
 		A1000009 /* ProcessUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000B /* ProcessUtilities.swift */; };
+		A100000B /* VoiceAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000D /* VoiceAnalyzer.swift */; };
 		A100000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A200000C /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -32,6 +33,7 @@
 		A200000A /* OutputGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGenerator.swift; sourceTree = "<group>"; };
 		A200000B /* ProcessUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessUtilities.swift; sourceTree = "<group>"; };
 		A200000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A200000D /* VoiceAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAnalyzer.swift; sourceTree = "<group>"; };
 		A2000010 /* Transcript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Transcript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -77,6 +79,7 @@
 				A2000009 /* SpeakerDetector.swift */,
 				A200000A /* OutputGenerator.swift */,
 				A200000B /* ProcessUtilities.swift */,
+				A200000D /* VoiceAnalyzer.swift */,
 				A200000C /* Assets.xcassets */,
 				A2000003 /* Info.plist */,
 				A2000004 /* Transcript.entitlements */,
@@ -154,6 +157,7 @@
 				A1000007 /* SpeakerDetector.swift in Sources */,
 				A1000008 /* OutputGenerator.swift in Sources */,
 				A1000009 /* ProcessUtilities.swift in Sources */,
+				A100000B /* VoiceAnalyzer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -164,7 +168,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -216,7 +219,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -262,6 +264,7 @@
 		A9000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Transcript/Transcript.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -283,6 +286,7 @@
 		A9000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Transcript/Transcript.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;

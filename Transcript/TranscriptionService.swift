@@ -71,7 +71,9 @@ final class TranscriptionService: Sendable {
             let path = destDir.appendingPathComponent("\(inputBase).txt").path
             let content: String
             if speakerDetection {
-                let labeled = SpeakerDetector.assignSpeakers(whisperOutput.segments)
+                onProgress(ProgressUpdate(kind: .status("Analyzing speakers...")))
+                let labeled = await SpeakerDetector.assignSpeakers(
+                    filePath: fileURL.path, segments: whisperOutput.segments)
                 content = OutputGenerator.generateTXTWithSpeakers(labeled)
             } else {
                 content = OutputGenerator.generateTXT(whisperOutput.segments)
