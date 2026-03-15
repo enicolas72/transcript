@@ -1,10 +1,27 @@
 import Foundation
 
-enum AppState: Equatable {
-    case idle
+enum FileStatus: Equatable {
+    case waiting
     case processing
     case done(txtPath: String?, srtPath: String?)
     case error(String)
+
+    var label: String {
+        switch self {
+        case .waiting: return "Waiting"
+        case .processing: return "Processing"
+        case .done: return "Done"
+        case .error: return "Error"
+        }
+    }
+}
+
+struct FileItem: Identifiable {
+    let id = UUID()
+    let url: URL
+    var status: FileStatus = .waiting
+
+    var fileName: String { url.lastPathComponent }
 }
 
 enum OutputFolder: Equatable {
@@ -51,11 +68,19 @@ struct LabeledSegment {
     let speaker: String
 }
 
+struct DiarizationSegment {
+    let start: Double       // seconds
+    let end: Double         // seconds
+    let speakerId: Int      // cluster index
+    let speakerLabel: String // "Speaker A", "Speaker B", etc.
+}
+
 enum TranscriptionError: LocalizedError {
     case noOutput
     case emptyTranscription
     case whisperFailed(exitCode: Int32)
     case modelDownloadFailed(model: String)
+    case diarizationFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -67,6 +92,8 @@ enum TranscriptionError: LocalizedError {
             return "Whisper exited with code \(code). Check the log output for details."
         case .modelDownloadFailed(let model):
             return "Failed to download the '\(model)' model. Check your internet connection and try again."
+        case .diarizationFailed(let reason):
+            return "Speaker detection failed: \(reason)"
         }
     }
 }

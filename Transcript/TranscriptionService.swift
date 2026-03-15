@@ -2,6 +2,7 @@ import Foundation
 
 final class TranscriptionService: Sendable {
     private let whisperPath = "/opt/homebrew/bin/whisper"
+    private let pythonPath = "/opt/homebrew/opt/python@3.11/bin/python3.11"
 
     private let modelMinSizes: [String: Int] = [
         "tiny": 70_000_000,
@@ -44,6 +45,7 @@ final class TranscriptionService: Sendable {
             model: model,
             outputDir: tmpDir.path,
             duration: duration,
+            wordTimestamps: speakerDetection,
             onProgress: onProgress
         )
 
@@ -71,10 +73,18 @@ final class TranscriptionService: Sendable {
             let path = destDir.appendingPathComponent("\(inputBase).txt").path
             let content: String
             if speakerDetection {
-                onProgress(ProgressUpdate(kind: .status("Analyzing speakers...")))
-                let labeled = await SpeakerDetector.assignSpeakers(
-                    filePath: fileURL.path, segments: whisperOutput.segments)
-                content = OutputGenerator.generateTXTWithSpeakers(labeled)
+                do {
+                    content = try await runSpeakerDiarization(
+                        fileURL: fileURL,
+                        whisperJSON: jsonFile,
+                        tmpDir: tmpDir,
+                        onProgress: onProgress
+                    )
+                } catch {
+                    onProgress(ProgressUpdate(kind: .log(
+                        "Speaker detection failed: \(error.localizedDescription). Continuing without speaker labels.")))
+                    content = OutputGenerator.generateTXT(whisperOutput.segments)
+                }
             } else {
                 content = OutputGenerator.generateTXT(whisperOutput.segments)
             }
@@ -90,6 +100,100 @@ final class TranscriptionService: Sendable {
         }
 
         return TranscriptionResult(txtPath: txtPath, srtPath: srtPath)
+    }
+
+    // MARK: - Speaker Diarization
+
+    private func runSpeakerDiarization(
+        fileURL: URL,
+        whisperJSON: URL,
+        tmpDir: URL,
+        onProgress: @escaping @Sendable (ProgressUpdate) -> Void
+    ) async throws -> String {
+        onProgress(ProgressUpdate(kind: .status("Extracting audio...")))
+
+        // Extract audio to 16kHz mono wav for speaker analysis
+        let wavFile = tmpDir.appendingPathComponent("audio.wav")
+        try await extractWav(from: fileURL, to: wavFile)
+
+        // Find the diarize.py script in the app bundle
+        guard let scriptPath = Bundle.main.path(forResource: "diarize", ofType: "py") else {
+            throw TranscriptionError.diarizationFailed("diarize.py not found in app bundle")
+        }
+
+        onProgress(ProgressUpdate(kind: .status("Analyzing speakers...")))
+        onProgress(ProgressUpdate(kind: .log("Running speaker diarization...")))
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: pythonPath)
+        process.arguments = [scriptPath, wavFile.path, whisperJSON.path]
+
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        process.environment = env
+
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
+        process.standardOutput = stdoutPipe
+        process.standardError = stderrPipe
+
+        return try await withCheckedThrowingContinuation { continuation in
+            process.terminationHandler = { proc in
+                let outData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                let errData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+
+                if let errStr = String(data: errData, encoding: .utf8), !errStr.isEmpty {
+                    let lines = errStr.components(separatedBy: "\n").filter { !$0.isEmpty }
+                    for line in lines {
+                        Task { @MainActor in
+                            onProgress(ProgressUpdate(kind: .log(line)))
+                        }
+                    }
+                }
+
+                if proc.terminationStatus == 0,
+                   let output = String(data: outData, encoding: .utf8),
+                   !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    continuation.resume(returning: output)
+                } else {
+                    let errMsg = String(data: errData, encoding: .utf8) ?? "Unknown error"
+                    continuation.resume(throwing: TranscriptionError.diarizationFailed(errMsg))
+                }
+            }
+
+            do { try process.run() }
+            catch { continuation.resume(throwing: error) }
+        }
+    }
+
+    private func extractWav(from input: URL, to output: URL) async throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/ffmpeg")
+        process.arguments = [
+            "-y", "-i", input.path,
+            "-ac", "1", "-ar", "16000",
+            "-v", "quiet",
+            output.path
+        ]
+
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+        process.environment = env
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            process.terminationHandler = { proc in
+                if proc.terminationStatus == 0 {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: TranscriptionError.diarizationFailed(
+                        "Failed to extract audio (ffmpeg exit \(proc.terminationStatus))"))
+                }
+            }
+            do { try process.run() }
+            catch { continuation.resume(throwing: error) }
+        }
     }
 
     // MARK: - Duration Probe
@@ -151,7 +255,7 @@ final class TranscriptionService: Sendable {
         onProgress(ProgressUpdate(kind: .log("Downloading model '\(model)'... (this may take a few minutes)")))
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/opt/homebrew/opt/python@3.11/bin/python3.11")
+        process.executableURL = URL(fileURLWithPath: pythonPath)
         process.arguments = ["-c", "import whisper; whisper.load_model('\(model)', download_root=None)"]
 
         var env = ProcessInfo.processInfo.environment
@@ -206,11 +310,13 @@ final class TranscriptionService: Sendable {
         model: String,
         outputDir: String,
         duration: Double?,
+        wordTimestamps: Bool,
         onProgress: @escaping @Sendable (ProgressUpdate) -> Void
     ) async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: whisperPath)
-        process.arguments = [
+
+        var args = [
             inputFile,
             "--model", model,
             "--output_format", "json",
@@ -218,6 +324,10 @@ final class TranscriptionService: Sendable {
             "--verbose", "True",
             "--fp16", "False"
         ]
+        if wordTimestamps {
+            args += ["--word_timestamps", "True"]
+        }
+        process.arguments = args
 
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"

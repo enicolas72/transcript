@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class TranscriptionViewModel: ObservableObject {
-    @Published var state: AppState = .idle
+    @Published var fileQueue: [FileItem] = []
     @Published var logOutput: String = ""
     @Published var statusText: String = ""
     @Published var progressFraction: Double? = nil
@@ -18,50 +18,89 @@ final class TranscriptionViewModel: ObservableObject {
 
     private var currentTask: Task<Void, Never>?
 
+    var isProcessing: Bool {
+        fileQueue.contains { $0.status == .processing }
+    }
+
+    // MARK: - Drop Handling
+
     func handleDrop(providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
-
         let typeID = UTType.fileURL.identifier
-        guard provider.hasItemConformingToTypeIdentifier(typeID) else { return false }
+        let validProviders = providers.filter { $0.hasItemConformingToTypeIdentifier(typeID) }
+        guard !validProviders.isEmpty else { return false }
 
-        provider.loadItem(forTypeIdentifier: typeID, options: nil) { [weak self] item, error in
-            guard let data = item as? Data,
-                  let url = URL(dataRepresentation: data, relativeTo: nil, isAbsolute: true) else {
+        for provider in validProviders {
+            provider.loadItem(forTypeIdentifier: typeID, options: nil) { [weak self] item, error in
+                guard let data = item as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil, isAbsolute: true) else { return }
                 Task { @MainActor in
-                    self?.state = .error("Could not read dropped file URL.")
+                    self?.addFile(url: url)
                 }
-                return
-            }
-            Task { @MainActor in
-                self?.startTranscription(fileURL: url)
             }
         }
         return true
     }
 
-    func startTranscription(fileURL: URL) {
-        let ext = fileURL.pathExtension.lowercased()
-        guard supportedExtensions.contains(ext) else {
-            state = .error("Unsupported file type: .\(ext)\n\nSupported formats: mp3, wav, m4a, flac, ogg, mp4, mov, mkv, avi, webm")
-            return
+    // MARK: - Queue Management
+
+    func addFile(url: URL) {
+        let ext = url.pathExtension.lowercased()
+        guard supportedExtensions.contains(ext) else { return }
+        guard !fileQueue.contains(where: { $0.url == url && ($0.status == .waiting || $0.status == .processing) }) else { return }
+
+        fileQueue.append(FileItem(url: url))
+        processNextIfNeeded()
+    }
+
+    func removeFile(id: UUID) {
+        guard let index = fileQueue.firstIndex(where: { $0.id == id }) else { return }
+        let wasProcessing = fileQueue[index].status == .processing
+
+        if wasProcessing {
+            currentTask?.cancel()
+            currentTask = nil
         }
 
+        fileQueue.remove(at: index)
+
+        if wasProcessing {
+            logOutput = ""
+            statusText = ""
+            progressFraction = nil
+            processNextIfNeeded()
+        }
+    }
+
+    // MARK: - Processing
+
+    private func processNextIfNeeded() {
+        guard !isProcessing else { return }
+        guard let index = fileQueue.firstIndex(where: { $0.status == .waiting }) else {
+            progressFraction = nil
+            return
+        }
+        startProcessing(at: index)
+    }
+
+    private func startProcessing(at index: Int) {
         guard settings.txtEnabled || settings.srtEnabled else {
-            state = .error("Enable at least one output format (.txt or .srt).")
+            fileQueue[index].status = .error("No output formats enabled")
+            processNextIfNeeded()
             return
         }
 
-        state = .processing
+        fileQueue[index].status = .processing
         logOutput = ""
-        statusText = "Starting..."
+        statusText = "Starting \(fileQueue[index].fileName)..."
         progressFraction = nil
+
+        let fileURL = fileQueue[index].url
+        let fileId = fileQueue[index].id
 
         let outputDir: URL?
         switch settings.outputFolder {
-        case .sameAsInput:
-            outputDir = nil
-        case .custom(let url):
-            outputDir = url
+        case .sameAsInput: outputDir = nil
+        case .custom(let url): outputDir = url
         }
 
         let capturedSettings = settings
@@ -88,24 +127,27 @@ final class TranscriptionViewModel: ObservableObject {
                         }
                     }
                 }
-                state = .done(txtPath: result.txtPath, srtPath: result.srtPath)
-                statusText = "Done!"
+
+                if let idx = fileQueue.firstIndex(where: { $0.id == fileId }) {
+                    fileQueue[idx].status = .done(txtPath: result.txtPath, srtPath: result.srtPath)
+                }
+                statusText = "Done"
                 progressFraction = 1.0
+            } catch is CancellationError {
+                // File was removed during processing
             } catch {
-                state = .error(error.localizedDescription)
-                statusText = ""
+                if let idx = fileQueue.firstIndex(where: { $0.id == fileId }) {
+                    fileQueue[idx].status = .error(error.localizedDescription)
+                }
+                logOutput += "Error: \(error.localizedDescription)\n"
+                statusText = "Error"
             }
+
+            processNextIfNeeded()
         }
     }
 
-    func reset() {
-        currentTask?.cancel()
-        currentTask = nil
-        state = .idle
-        logOutput = ""
-        statusText = ""
-        progressFraction = nil
-    }
+    // MARK: - Settings
 
     func pickOutputFolder() {
         let panel = NSOpenPanel()

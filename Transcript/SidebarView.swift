@@ -34,7 +34,7 @@ struct SidebarView: View {
             }
             .pickerStyle(.menu)
             .labelsHidden()
-            .disabled(vm.state == .processing)
+            .disabled(vm.isProcessing)
         }
     }
 
@@ -65,7 +65,7 @@ struct SidebarView: View {
                 Text("Custom folder").tag(1)
             }
             .pickerStyle(.radioGroup)
-            .disabled(vm.state == .processing)
+            .disabled(vm.isProcessing)
 
             if case .custom(let url) = vm.settings.outputFolder {
                 HStack(spacing: 4) {
@@ -85,7 +85,7 @@ struct SidebarView: View {
                 }
                 .font(.caption)
                 .padding(.leading, 20)
-                .disabled(vm.state == .processing)
+                .disabled(vm.isProcessing)
             }
         }
     }
@@ -101,20 +101,20 @@ struct SidebarView: View {
             Toggle(isOn: $vm.settings.txtEnabled) {
                 Text(".txt transcript")
             }
-            .disabled(vm.state == .processing)
+            .disabled(vm.isProcessing)
 
             if vm.settings.txtEnabled {
                 Toggle(isOn: $vm.settings.speakerDetection) {
                     Text("Speaker detection")
                 }
                 .padding(.leading, 20)
-                .disabled(vm.state == .processing)
+                .disabled(vm.isProcessing)
             }
 
             Toggle(isOn: $vm.settings.srtEnabled) {
                 Text(".srt subtitles")
             }
-            .disabled(vm.state == .processing)
+            .disabled(vm.isProcessing)
         }
     }
 }
