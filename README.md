@@ -79,10 +79,10 @@ The original speaker detection used 5 hand-crafted audio features (spectral cent
 
 The replacement uses [resemblyzer](https://github.com/resemble-ai/Resemblyzer) speaker embeddings with spectral clustering, invoked via a bundled Python script (`diarize.py`):
 
-1. **GE2E speaker embeddings** — a neural network trained with generalized end-to-end loss computes 256-dimensional speaker identity vectors for overlapping 1.5-second audio windows (0.25s step)
-2. **Spectral clustering** — automatically determines the number of speakers via silhouette score optimization, then assigns each window to a speaker cluster
-3. **Word-level assignment** — Whisper's word-level timestamps map each word to the nearest embedding window's speaker
-4. **Median smoothing** — a 7-word sliding window majority vote eliminates isolated single-word speaker flips
+1. **Coarse speaker profiling** — 1.5s overlapping windows (0.5s step) compute GE2E 256-dimensional speaker embeddings, clustered via spectral clustering with automatic speaker count detection (silhouette score)
+2. **Sentence-level assignment** — each Whisper segment is split at sentence punctuation (`.` `?` `!`) into sub-segments; one embedding per sub-segment is compared to the speaker profiles via cosine similarity
+3. **Sentence continuation carrying** — when a sub-segment continues an incomplete sentence (previous sub lacked punctuation) and its own embedding confidence is low, it inherits the previous speaker — fixing cross-segment sentence splits
+4. **Run-length smoothing** — speaker runs shorter than 5 words are absorbed into neighbors, eliminating spurious short flips
 
 ### Alternatives tested
 
@@ -97,11 +97,12 @@ FluidAudio was tested extensively with tuned config (finer step ratio, lower thr
 ### How diarization works
 
 1. Audio is extracted to 16kHz mono WAV via ffmpeg
-2. Resemblyzer computes speaker embeddings for overlapping 1.5s windows across the full audio
-3. Spectral clustering groups windows into speakers (auto-detects count via silhouette score)
-4. Each Whisper word (with timestamp) is assigned to the speaker of the nearest embedding window
-5. A 7-word median filter smooths isolated speaker label flips
-6. Consecutive same-speaker words are grouped into paragraphs, labeled "Speaker A", "Speaker B", etc. by first appearance
+2. Coarse 1.5s overlapping windows are embedded and clustered to build per-speaker profiles
+3. Each Whisper segment is split at sentence punctuation into sub-segments
+4. Each sub-segment's embedding is compared to speaker profiles via cosine similarity
+5. Cross-segment sentence continuations (no punctuation at boundary) carry forward the previous speaker when the current embedding is ambiguous
+6. Runs shorter than 5 words are absorbed into neighbors
+7. Consecutive same-speaker words are grouped into paragraphs, labeled "Speaker A", "Speaker B", etc. by first appearance
 
 If diarization fails for any reason, the app falls back gracefully to unlabeled transcript output.
 

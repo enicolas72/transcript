@@ -30,11 +30,41 @@ enum OutputFolder: Equatable {
 }
 
 struct TranscriptionSettings {
-    var model: String = "medium"
-    var outputFolder: OutputFolder = .sameAsInput
-    var txtEnabled: Bool = true
-    var speakerDetection: Bool = true
-    var srtEnabled: Bool = true
+    var model: String {
+        didSet { UserDefaults.standard.set(model, forKey: "model") }
+    }
+    var outputFolder: OutputFolder {
+        didSet {
+            switch outputFolder {
+            case .sameAsInput:
+                UserDefaults.standard.removeObject(forKey: "outputFolder")
+            case .custom(let url):
+                UserDefaults.standard.set(url.path, forKey: "outputFolder")
+            }
+        }
+    }
+    var txtEnabled: Bool {
+        didSet { UserDefaults.standard.set(txtEnabled, forKey: "txtEnabled") }
+    }
+    var speakerDetection: Bool {
+        didSet { UserDefaults.standard.set(speakerDetection, forKey: "speakerDetection") }
+    }
+    var srtEnabled: Bool {
+        didSet { UserDefaults.standard.set(srtEnabled, forKey: "srtEnabled") }
+    }
+
+    init() {
+        let d = UserDefaults.standard
+        model = d.string(forKey: "model") ?? "medium"
+        if let path = d.string(forKey: "outputFolder") {
+            outputFolder = .custom(URL(fileURLWithPath: path))
+        } else {
+            outputFolder = .sameAsInput
+        }
+        txtEnabled = d.object(forKey: "txtEnabled") as? Bool ?? true
+        speakerDetection = d.object(forKey: "speakerDetection") as? Bool ?? true
+        srtEnabled = d.object(forKey: "srtEnabled") as? Bool ?? true
+    }
 }
 
 struct TranscriptionResult {

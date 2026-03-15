@@ -152,7 +152,7 @@ struct ContentView: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
 
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     if file.status == .processing {
                         ProgressView()
                             .scaleEffect(0.5)

@@ -122,7 +122,7 @@ final class TranscriptionService: Sendable {
         }
 
         onProgress(ProgressUpdate(kind: .status("Analyzing speakers...")))
-        onProgress(ProgressUpdate(kind: .log("Running speaker diarization...")))
+        onProgress(ProgressUpdate(kind: .log("\nRunning speaker detection...")))
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: pythonPath)
