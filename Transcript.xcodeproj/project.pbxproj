@@ -14,12 +14,9 @@
 		A1000005 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007 /* ContentView.swift */; };
 		A1000006 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* SidebarView.swift */; };
 		A1000008 /* OutputGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* OutputGenerator.swift */; };
-		A1000009 /* ProcessUtilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000B /* ProcessUtilities.swift */; };
 		A100000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A200000C /* Assets.xcassets */; };
-		A100000C /* DiarizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000E /* DiarizationService.swift */; };
 		A100000D /* TranscriptMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000F /* TranscriptMerger.swift */; };
 		A100000E /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = AB000001 /* FluidAudio */; };
-		A100000F /* diarize.py in Resources */ = {isa = PBXBuildFile; fileRef = A2000011 /* diarize.py */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,12 +29,9 @@
 		A2000007 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2000008 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		A200000A /* OutputGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGenerator.swift; sourceTree = "<group>"; };
-		A200000B /* ProcessUtilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessUtilities.swift; sourceTree = "<group>"; };
 		A200000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A200000E /* DiarizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizationService.swift; sourceTree = "<group>"; };
 		A200000F /* TranscriptMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptMerger.swift; sourceTree = "<group>"; };
 		A2000010 /* Transcript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Transcript.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A2000011 /* diarize.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = diarize.py; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,7 +51,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A100000A /* Assets.xcassets in Resources */,
-				A100000F /* diarize.py in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -81,11 +74,8 @@
 				A2000007 /* ContentView.swift */,
 				A2000008 /* SidebarView.swift */,
 				A2000002 /* TranscriptionService.swift */,
-				A200000E /* DiarizationService.swift */,
 				A200000F /* TranscriptMerger.swift */,
 				A200000A /* OutputGenerator.swift */,
-				A200000B /* ProcessUtilities.swift */,
-				A2000011 /* diarize.py */,
 				A200000C /* Assets.xcassets */,
 				A2000003 /* Info.plist */,
 				A2000004 /* Transcript.entitlements */,
@@ -167,8 +157,6 @@
 				A1000006 /* SidebarView.swift in Sources */,
 				A1000002 /* TranscriptionService.swift in Sources */,
 				A1000008 /* OutputGenerator.swift in Sources */,
-				A1000009 /* ProcessUtilities.swift in Sources */,
-				A100000C /* DiarizationService.swift in Sources */,
 				A100000D /* TranscriptMerger.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -125,7 +125,7 @@ struct ContentView: View {
             Text("Drop audio or video files here")
                 .font(.headline)
                 .foregroundColor(.secondary)
-            Text("mp3, wav, m4a, flac, ogg\nmp4, mov, mkv, avi, webm")
+            Text("mp3, wav, m4a, flac, aac, aiff\nmp4, mov")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

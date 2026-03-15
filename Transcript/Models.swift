@@ -30,9 +30,6 @@ enum OutputFolder: Equatable {
 }
 
 struct TranscriptionSettings {
-    var model: String {
-        didSet { UserDefaults.standard.set(model, forKey: "model") }
-    }
     var outputFolder: OutputFolder {
         didSet {
             switch outputFolder {
@@ -55,7 +52,6 @@ struct TranscriptionSettings {
 
     init() {
         let d = UserDefaults.standard
-        model = d.string(forKey: "model") ?? "medium"
         if let path = d.string(forKey: "outputFolder") {
             outputFolder = .custom(URL(fileURLWithPath: path))
         } else {
@@ -70,16 +66,6 @@ struct TranscriptionSettings {
 struct TranscriptionResult {
     let txtPath: String?
     let srtPath: String?
-}
-
-struct WhisperSegment: Decodable {
-    let start: Double
-    let end: Double
-    let text: String
-}
-
-struct WhisperOutput: Decodable {
-    let segments: [WhisperSegment]
 }
 
 struct ProgressUpdate: Sendable {
@@ -98,30 +84,20 @@ struct LabeledSegment {
     let speaker: String
 }
 
-struct DiarizationSegment {
-    let start: Double       // seconds
-    let end: Double         // seconds
-    let speakerId: Int      // cluster index
-    let speakerLabel: String // "Speaker A", "Speaker B", etc.
-}
-
 enum TranscriptionError: LocalizedError {
     case noOutput
     case emptyTranscription
-    case whisperFailed(exitCode: Int32)
-    case modelDownloadFailed(model: String)
+    case modelDownloadFailed(String)
     case diarizationFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .noOutput:
-            return "Whisper did not produce an output file. Check that the input is a valid audio/video file."
+            return "No audio track found. Check that the input is a valid audio/video file."
         case .emptyTranscription:
-            return "Transcription produced no segments. The file may contain no speech."
-        case .whisperFailed(let code):
-            return "Whisper exited with code \(code). Check the log output for details."
-        case .modelDownloadFailed(let model):
-            return "Failed to download the '\(model)' model. Check your internet connection and try again."
+            return "Transcription produced no words. The file may contain no speech."
+        case .modelDownloadFailed(let reason):
+            return "Failed to download model: \(reason). Check your internet connection."
         case .diarizationFailed(let reason):
             return "Speaker detection failed: \(reason)"
         }

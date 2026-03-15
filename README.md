@@ -1,40 +1,32 @@
 # Transcript
 
-A native macOS app that transcribes audio and video files to text using [OpenAI Whisper](https://github.com/openai/whisper), with neural speaker diarization powered by [resemblyzer](https://github.com/resemble-ai/Resemblyzer). Everything runs locally — no cloud services, no API keys.
+A fully native macOS app that transcribes audio and video files to text with speaker detection. Powered by [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet ASR + pyannote diarization) via CoreML. Everything runs locally on-device — no cloud services, no API keys, no Python, no external dependencies.
 
 ## Features
 
 - **Drag-and-drop** — drop any audio/video file onto the window to transcribe
-- **Multiple formats** — supports mp3, wav, m4a, flac, ogg, mp4, mov, mkv, avi, webm
-- **Auto language detection** — works with any language (optimized for French and English)
+- **Multiple formats** — supports mp3, wav, m4a, flac, aac, aiff, mp4, mov
 - **Dual output** — generates `.txt` transcript and `.srt` subtitles
-- **Neural speaker diarization** — identifies who spoke when, with automatic speaker count detection
+- **Speaker detection** — identifies who spoke when, with automatic speaker count detection
+- **Multi-file queue** — process multiple files sequentially, with per-file status tracking
 - **Real-time progress** — progress bar and live log during transcription
-- **Configurable** — choose whisper model, output folder, and output formats from the sidebar
+- **Self-contained** — models download automatically on first use, no Homebrew or pip needed
 
 ## Requirements
 
 - macOS 14+
-- [whisper](https://github.com/openai/whisper) CLI installed via Homebrew (`/opt/homebrew/bin/whisper`)
-- [ffmpeg](https://ffmpeg.org/) installed via Homebrew (used by whisper and for audio extraction)
-- [resemblyzer](https://github.com/resemble-ai/Resemblyzer) Python package (for speaker detection): `pip3 install resemblyzer`
-
-### Install dependencies
-
-```bash
-brew install ffmpeg
-pip3 install openai-whisper resemblyzer
-```
+- Xcode 16+ (for building)
+- Internet connection on first run (to download ~700 MB of CoreML models)
 
 ## Build & Run
 
-Open `Transcript.xcodeproj` in Xcode and hit Run, or build from the command line:
+Open `Transcript.xcodeproj` in Xcode and hit Run, or:
 
 ```bash
 xcodebuild -scheme Transcript -configuration Release build
 ```
 
-The whisper model (default: `medium`, ~1.5 GB) is downloaded automatically on first use. The resemblyzer speaker encoder model is downloaded on first use as well.
+On first use, the app downloads and compiles CoreML models (~600 MB for ASR, ~100 MB for diarization). Subsequent launches are instant.
 
 ## Architecture
 
@@ -43,68 +35,47 @@ Transcript/
 ├── TranscriptApp.swift          # App entry point
 ├── Models.swift                 # Data types, enums, errors
 ├── TranscriptionViewModel.swift # UI state management
-├── ContentView.swift            # Main content area (drop zone, progress, results)
+├── ContentView.swift            # Three-column layout (sidebar, log, file queue)
 ├── SidebarView.swift            # Settings panel
-├── TranscriptionService.swift   # Whisper process runner, model management
-├── diarize.py                   # Speaker diarization (resemblyzer embeddings + spectral clustering)
-├── DiarizationService.swift     # FluidAudio wrapper (unused, kept as reference)
-├── TranscriptMerger.swift       # Segment merger (unused, kept as reference)
-├── OutputGenerator.swift        # TXT and SRT file generation
-└── ProcessUtilities.swift       # LineBuffer, ThrottledOutput helpers
+├── TranscriptionService.swift   # ASR + audio extraction via FluidAudio/AVFoundation
+├── TranscriptMerger.swift       # Merges ASR tokens with diarization segments
+└── OutputGenerator.swift        # TXT and SRT file generation
 ```
 
 ## How it works
 
 1. Files are dropped onto the right panel (multiple files supported, processed sequentially)
-2. Duration is probed with `ffprobe` for the progress bar
-3. Whisper CLI runs with `--verbose True --output_format json --word_timestamps True`
-4. Stdout/stderr are streamed to the log view (throttled to avoid excessive UI redraws)
-5. Whisper's JSON output is parsed into segments with word-level timestamps
-6. Audio is extracted to 16kHz mono WAV via ffmpeg
-7. `diarize.py` computes speaker embeddings on sliding windows, clusters them, and assigns each word to a speaker
-8. `.txt` and `.srt` files are written next to the input file (or to a custom folder)
+2. Audio is extracted to 16kHz mono via AVFoundation (handles both audio and video files)
+3. FluidAudio Parakeet ASR transcribes with word-level timestamps via CoreML (Neural Engine accelerated)
+4. FluidAudio diarization runs pyannote segmentation + WeSpeaker embeddings + VBx clustering
+5. `TranscriptMerger` aligns ASR words with diarization segments at sentence boundaries
+6. `.txt` and `.srt` files are written next to the input file (or to a custom folder)
 
-## Speaker diarization
+## Speaker detection
 
-### Why neural diarization
+### Pipeline
 
-The original speaker detection used 5 hand-crafted audio features (spectral centroid, spectral spread, RMS energy, zero-crossing rate, pitch) extracted per Whisper segment, then clustered with k-means into exactly 2 speakers. This approach had fundamental limitations:
+1. **FluidAudio diarization** — pyannote PowerSet segmentation + WeSpeaker 256-dim embeddings + VBx Bayesian clustering, producing coarse speaker-labeled time regions
+2. **Sentence-level assignment** — ASR tokens are split at sentence punctuation (`.` `?` `!`) into sub-segments; each sub-segment is assigned the speaker with the most overlap
+3. **Sentence continuation carrying** — when a sub-segment continues an incomplete sentence (previous sub lacked punctuation) and overlap confidence is low, it inherits the previous speaker
+4. **Run-length smoothing** — speaker runs shorter than 5 words are absorbed into neighbors
 
-- **Shallow features don't capture speaker identity** — two people with similar pitch and energy are indistinguishable
-- **Fixed k=2** — couldn't handle monologues or 3+ speaker conversations
-- **Whisper segments are pause-based, not speaker-based** — a single segment can contain two speakers
-- **K-means with Euclidean distance on 5D features** — poor discriminative power for speaker separation
+### Technology stack
 
-### Resemblyzer pipeline
+| Component | Technology | Runs on |
+|-----------|-----------|---------|
+| Speech recognition | Parakeet TDT 0.6B (NVIDIA) | CoreML / Neural Engine |
+| Speaker segmentation | pyannote PowerSet | CoreML / Neural Engine |
+| Speaker embeddings | WeSpeaker ResNet34 | CoreML / Neural Engine |
+| Speaker clustering | VBx (Bayesian HMM) | CPU |
+| Audio extraction | AVFoundation | CPU |
 
-The replacement uses [resemblyzer](https://github.com/resemble-ai/Resemblyzer) speaker embeddings with spectral clustering, invoked via a bundled Python script (`diarize.py`):
+All ML inference runs on-device via CoreML with Apple Neural Engine acceleration. No Python, no external processes.
 
-1. **Coarse speaker profiling** — 1.5s overlapping windows (0.5s step) compute GE2E 256-dimensional speaker embeddings, clustered via spectral clustering with automatic speaker count detection (silhouette score)
-2. **Sentence-level assignment** — each Whisper segment is split at sentence punctuation (`.` `?` `!`) into sub-segments; one embedding per sub-segment is compared to the speaker profiles via cosine similarity
-3. **Sentence continuation carrying** — when a sub-segment continues an incomplete sentence (previous sub lacked punctuation) and its own embedding confidence is low, it inherits the previous speaker — fixing cross-segment sentence splits
-4. **Run-length smoothing** — speaker runs shorter than 5 words are absorbed into neighbors, eliminating spurious short flips
+### Limitations
 
-### Alternatives tested
-
-| Approach | Result |
-|----------|--------|
-| Hand-crafted features + k-means (original) | Everything assigned to one speaker — features too shallow |
-| FluidAudio (CoreML, pyannote+WeSpeaker+VBx) | Only 10-13 coarse segments for a 3-min conversation — too few turns detected, speaker assignment often wrong |
-| resemblyzer + spectral clustering | Good speaker separation at word level, correct speaker identity, handles rapid back-and-forth |
-
-FluidAudio was tested extensively with tuned config (finer step ratio, lower thresholds, reduced min segment duration) but its reconstruction pipeline fundamentally produces too-coarse segments for fast-paced conversations.
-
-### How diarization works
-
-1. Audio is extracted to 16kHz mono WAV via ffmpeg
-2. Coarse 1.5s overlapping windows are embedded and clustered to build per-speaker profiles
-3. Each Whisper segment is split at sentence punctuation into sub-segments
-4. Each sub-segment's embedding is compared to speaker profiles via cosine similarity
-5. Cross-segment sentence continuations (no punctuation at boundary) carry forward the previous speaker when the current embedding is ambiguous
-6. Runs shorter than 5 words are absorbed into neighbors
-7. Consecutive same-speaker words are grouped into paragraphs, labeled "Speaker A", "Speaker B", etc. by first appearance
-
-If diarization fails for any reason, the app falls back gracefully to unlabeled transcript output.
+- ASR is English-only (Parakeet model). Multilingual support via Qwen3-ASR is possible but currently lacks word-level timestamps needed for speaker alignment.
+- Speaker detection quality depends on how distinct the speakers' voices are. Fast-paced conversations with similar voices may have some boundary imprecision.
 
 ## License
 

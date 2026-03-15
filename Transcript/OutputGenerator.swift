@@ -1,11 +1,61 @@
 import Foundation
+import FluidAudio
 
 enum OutputGenerator {
-    /// Plain text without speaker labels
-    static func generateTXT(_ segments: [WhisperSegment]) -> String {
-        segments.map { $0.text.trimmingCharacters(in: .whitespaces) }
-            .joined(separator: "\n") + "\n"
+
+    // MARK: - Token-based outputs (native ASR)
+
+    /// Plain text from ASR tokens
+    static func generateTXTFromTokens(_ tokens: [TokenTiming]) -> String {
+        tokens.map(\.token).joined().trimmingCharacters(in: .whitespaces) + "\n"
     }
+
+    /// SRT subtitles from ASR tokens, grouped into ~5-second chunks at sentence boundaries
+    static func generateSRTFromTokens(_ tokens: [TokenTiming]) -> String {
+        let segments = groupTokensIntoSegments(tokens, maxDuration: 5.0)
+        var srt = ""
+        for (i, seg) in segments.enumerated() {
+            srt += "\(i + 1)\n"
+            srt += "\(formatSRTTime(seg.start)) --> \(formatSRTTime(seg.end))\n"
+            srt += "\(seg.text.trimmingCharacters(in: .whitespaces))\n\n"
+        }
+        return srt
+    }
+
+    /// Group tokens into subtitle-sized segments, preferring sentence boundaries
+    private static func groupTokensIntoSegments(
+        _ tokens: [TokenTiming], maxDuration: Double
+    ) -> [(start: Double, end: Double, text: String)] {
+        guard !tokens.isEmpty else { return [] }
+
+        var segments: [(start: Double, end: Double, text: String)] = []
+        var currentStart = tokens[0].startTime
+        var currentText = ""
+        var lastEnd = tokens[0].startTime
+
+        for token in tokens {
+            currentText += token.token
+            lastEnd = token.endTime
+
+            let duration = lastEnd - currentStart
+            let word = token.token.trimmingCharacters(in: .whitespaces)
+            let atSentenceEnd = word.hasSuffix(".") || word.hasSuffix("?") || word.hasSuffix("!")
+
+            if duration >= maxDuration && atSentenceEnd {
+                segments.append((start: currentStart, end: lastEnd,
+                    text: currentText.trimmingCharacters(in: .whitespaces)))
+                currentText = ""
+                currentStart = lastEnd
+            }
+        }
+        if !currentText.trimmingCharacters(in: .whitespaces).isEmpty {
+            segments.append((start: currentStart, end: lastEnd,
+                text: currentText.trimmingCharacters(in: .whitespaces)))
+        }
+        return segments
+    }
+
+    // MARK: - Speaker-labeled output
 
     /// Text with speaker labels, merging consecutive same-speaker segments
     static func generateTXTWithSpeakers(_ segments: [LabeledSegment]) -> String {
@@ -33,16 +83,7 @@ enum OutputGenerator {
         return lines.joined(separator: "\n\n") + "\n"
     }
 
-    /// Standard SRT subtitle format
-    static func generateSRT(_ segments: [WhisperSegment]) -> String {
-        var srt = ""
-        for (i, seg) in segments.enumerated() {
-            srt += "\(i + 1)\n"
-            srt += "\(formatSRTTime(seg.start)) --> \(formatSRTTime(seg.end))\n"
-            srt += "\(seg.text.trimmingCharacters(in: .whitespaces))\n\n"
-        }
-        return srt
-    }
+    // MARK: - SRT Formatting
 
     private static func formatSRTTime(_ seconds: Double) -> String {
         let totalMs = Int(seconds * 1000)

@@ -8,8 +8,6 @@ struct SidebarView: View {
             Text("Settings")
                 .font(.headline)
 
-            modelSection
-            Divider()
             outputFolderSection
             Divider()
             outputFormatsSection
@@ -18,24 +16,6 @@ struct SidebarView: View {
         }
         .padding()
         .background(Color(nsColor: .windowBackgroundColor))
-    }
-
-    // MARK: - Model
-
-    private var modelSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Model")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Picker("", selection: $vm.settings.model) {
-                ForEach(vm.availableModels, id: \.self) { model in
-                    Text(model).tag(model)
-                }
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .disabled(vm.isProcessing)
-        }
     }
 
     // MARK: - Output Folder

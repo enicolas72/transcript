@@ -9,11 +9,9 @@ final class TranscriptionViewModel: ObservableObject {
     @Published var progressFraction: Double? = nil
     @Published var settings = TranscriptionSettings()
 
-    let availableModels = ["tiny", "base", "small", "medium", "large"]
-
     private let supportedExtensions: Set<String> = [
-        "mp3", "wav", "m4a", "flac", "ogg",
-        "mp4", "mov", "mkv", "avi", "webm"
+        "mp3", "wav", "m4a", "flac", "aac", "aiff", "caf",
+        "mp4", "mov"
     ]
 
     private var currentTask: Task<Void, Never>?
@@ -110,7 +108,6 @@ final class TranscriptionViewModel: ObservableObject {
                 let service = TranscriptionService()
                 let result = try await service.transcribe(
                     fileURL: fileURL,
-                    model: capturedSettings.model,
                     outputDir: outputDir,
                     txtEnabled: capturedSettings.txtEnabled,
                     srtEnabled: capturedSettings.srtEnabled,
