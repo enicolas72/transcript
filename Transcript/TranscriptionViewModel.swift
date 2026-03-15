@@ -87,12 +87,45 @@ final class TranscriptionViewModel: ObservableObject {
             return
         }
 
+        // Check for existing output files before starting
+        let fileURL = fileQueue[index].url
+        let destDir: URL
+        switch settings.outputFolder {
+        case .sameAsInput: destDir = fileURL.deletingLastPathComponent()
+        case .custom(let url): destDir = url
+        }
+        let baseName = fileURL.deletingPathExtension().lastPathComponent
+
+        var existingFiles: [String] = []
+        if settings.txtEnabled {
+            let p = destDir.appendingPathComponent("\(baseName).txt")
+            if FileManager.default.fileExists(atPath: p.path) { existingFiles.append(p.lastPathComponent) }
+        }
+        if settings.srtEnabled {
+            let p = destDir.appendingPathComponent("\(baseName).srt")
+            if FileManager.default.fileExists(atPath: p.path) { existingFiles.append(p.lastPathComponent) }
+        }
+
+        if !existingFiles.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "Overwrite existing files?"
+            alert.informativeText = existingFiles.joined(separator: ", ") + " already exist."
+            alert.addButton(withTitle: "Overwrite")
+            alert.addButton(withTitle: "Skip")
+            alert.alertStyle = .warning
+
+            if alert.runModal() != .alertFirstButtonReturn {
+                fileQueue[index].status = .error("Skipped (files exist)")
+                processNextIfNeeded()
+                return
+            }
+        }
+
         fileQueue[index].status = .processing
         logOutput = ""
         statusText = "Starting \(fileQueue[index].fileName)..."
         progressFraction = nil
 
-        let fileURL = fileQueue[index].url
         let fileId = fileQueue[index].id
 
         let outputDir: URL?
