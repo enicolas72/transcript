@@ -20,6 +20,7 @@ struct ContentView: View {
                 .frame(width: 240)
         }
         .frame(width: 900, height: 500)
+        .background(WindowAccessor())
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
             vm.handleDrop(providers: providers)
         }
@@ -187,4 +188,15 @@ struct ContentView: View {
         case .error: return .red
         }
     }
+}
+
+private struct WindowAccessor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            view.window?.setFrameAutosaveName("MainWindow")
+        }
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
