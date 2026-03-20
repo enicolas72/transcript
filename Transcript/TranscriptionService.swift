@@ -2,8 +2,15 @@ import Foundation
 import AVFoundation
 import FluidAudio
 
+/// Thread-safety: asrManager is only written once during ensureModels() and read
+/// thereafter. The lock ensures safe publication across actor boundaries.
 final class TranscriptionService: @unchecked Sendable {
-    private var asrManager: AsrManager?
+    private let lock = NSLock()
+    private var _asrManager: AsrManager?
+    private var asrManager: AsrManager? {
+        get { lock.withLock { _asrManager } }
+        set { lock.withLock { _asrManager = newValue } }
+    }
 
     func transcribe(
         fileURL: URL,
@@ -101,6 +108,8 @@ final class TranscriptionService: @unchecked Sendable {
 
     // MARK: - Model Preparation
 
+    private static let maxRetries = 3
+
     private func ensureModels(
         onProgress: @escaping @Sendable (ProgressUpdate) -> Void
     ) async throws {
@@ -108,11 +117,13 @@ final class TranscriptionService: @unchecked Sendable {
             onProgress(ProgressUpdate(kind: .status("Downloading speech recognition model...")))
             onProgress(ProgressUpdate(kind: .log("Preparing ASR model (first run downloads ~600 MB)...")))
 
-            let models = try await AsrModels.downloadAndLoad(
-                version: .v3
-            ) { progress in
-                Task { @MainActor in
-                    onProgress(ProgressUpdate(kind: .progress(progress.fractionCompleted * 0.3)))
+            let models = try await withRetry(maxAttempts: Self.maxRetries, label: "ASR model download", onProgress: onProgress) {
+                try await AsrModels.downloadAndLoad(
+                    version: .v3
+                ) { progress in
+                    Task { @MainActor in
+                        onProgress(ProgressUpdate(kind: .progress(progress.fractionCompleted * 0.3)))
+                    }
                 }
             }
             let asr = AsrManager()
@@ -123,20 +134,47 @@ final class TranscriptionService: @unchecked Sendable {
         }
 
         // Speaker embedding model is downloaded with the diarization models
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            throw TranscriptionError.modelDownloadFailed("Could not locate Application Support directory")
+        }
         let embeddingModelPath = appSupport
             .appendingPathComponent("FluidAudio/Models/speaker-diarization-coreml/Embedding.mlmodelc")
         if !FileManager.default.fileExists(atPath: embeddingModelPath.path) {
             onProgress(ProgressUpdate(kind: .status("Downloading speaker detection model...")))
             onProgress(ProgressUpdate(kind: .log("Preparing speaker embedding model (~100 MB)...")))
 
-            let diarizer = OfflineDiarizerManager()
-            try await diarizer.prepareModels()
+            try await withRetry(maxAttempts: Self.maxRetries, label: "Speaker model download", onProgress: onProgress) {
+                let diarizer = OfflineDiarizerManager()
+                try await diarizer.prepareModels()
+            }
 
             onProgress(ProgressUpdate(kind: .log("Speaker embedding model ready.")))
         }
 
         onProgress(ProgressUpdate(kind: .progress(0.3)))
+    }
+
+    private func withRetry<T>(
+        maxAttempts: Int,
+        label: String,
+        onProgress: @escaping @Sendable (ProgressUpdate) -> Void,
+        operation: () async throws -> T
+    ) async throws -> T {
+        var lastError: Error?
+        for attempt in 1...maxAttempts {
+            do {
+                return try await operation()
+            } catch {
+                lastError = error
+                if attempt < maxAttempts {
+                    let delay = attempt * 2  // 2s, 4s backoff
+                    onProgress(ProgressUpdate(kind: .log(
+                        "\(label) failed (attempt \(attempt)/\(maxAttempts)): \(error.localizedDescription). Retrying in \(delay)s...")))
+                    try? await Task.sleep(for: .seconds(delay))
+                }
+            }
+        }
+        throw TranscriptionError.modelDownloadFailed(lastError?.localizedDescription ?? "Unknown error after \(maxAttempts) attempts")
     }
 
     // MARK: - Audio Extraction

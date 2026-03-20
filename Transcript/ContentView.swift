@@ -167,6 +167,18 @@ struct ContentView: View {
 
             Spacer()
 
+            if case .error = file.status {
+                Button {
+                    vm.retryFile(id: file.id)
+                } label: {
+                    Image(systemName: "arrow.clockwise.circle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 14))
+                }
+                .buttonStyle(.plain)
+                .help("Retry")
+            }
+
             Button {
                 vm.removeFile(id: file.id)
             } label: {

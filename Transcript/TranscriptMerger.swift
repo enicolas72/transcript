@@ -13,8 +13,13 @@ import Accelerate
 enum TranscriptMerger {
 
     private static let sampleRate = 16000
-    private static let modelWindowSamples = 160_000  // 10 seconds
-    private static let maskFrames = 589              // segmentation frame count for 10s
+    // WeSpeaker expects 10 seconds of audio at 16kHz = 160,000 samples
+    private static let modelWindowSamples = 160_000
+    // FBank output has 998 frames for 10s of audio; the Embedding model's weights
+    // mask has 589 entries (segmentation temporal resolution for 10s window).
+    // Both values are fixed by the CoreML model architecture — do not change
+    // unless the upstream FBank/Embedding .mlmodelc files change.
+    private static let maskFrames = 589
 
     // MARK: - Public API
 
@@ -33,11 +38,12 @@ enum TranscriptMerger {
         // Compute one neural embedding per sub-segment
         var subEmbeddings: [[Float]] = []
         for sub in subs {
+            guard let first = sub.first, let last = sub.last else { continue }
             let emb = try computeEmbedding(
                 models: models,
                 audioSamples: audioSamples,
-                startTime: sub.first!.startTime,
-                endTime: sub.last!.endTime
+                startTime: first.startTime,
+                endTime: last.endTime
             )
             subEmbeddings.append(emb)
         }
@@ -70,7 +76,9 @@ enum TranscriptMerger {
     }
 
     private static func loadModels() throws -> EmbeddingModels {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            throw TranscriptionError.diarizationFailed("Could not locate Application Support directory")
+        }
         let modelsDir = appSupport.appendingPathComponent("FluidAudio/Models/speaker-diarization-coreml")
 
         let config = MLModelConfiguration()
@@ -87,7 +95,9 @@ enum TranscriptMerger {
 
     // MARK: - Per-Sub-Segment Embedding
 
+    // FBank model outputs 998 time frames for a 10-second input window
     private static let fbankFrames = 998
+    // WeSpeaker ResNet34 produces 256-dimensional speaker embeddings
     private static let embDim = 256
 
     private static func computeEmbedding(
@@ -154,7 +164,7 @@ enum TranscriptMerger {
 
     // MARK: - Clustering (cosine similarity + k-means)
 
-    private static func clusterEmbeddings(
+    static func clusterEmbeddings(
         _ embeddings: [[Float]], maxSpeakers: Int
     ) -> (labels: [Int], k: Int) {
         let n = embeddings.count
@@ -178,7 +188,7 @@ enum TranscriptMerger {
         return (bestLabels, bestK)
     }
 
-    private static func kMeans(_ embeddings: [[Float]], k: Int, maxIter: Int = 30) -> [Int] {
+    static func kMeans(_ embeddings: [[Float]], k: Int, maxIter: Int = 30) -> [Int] {
         let n = embeddings.count
         let dim = embeddings[0].count
         guard n >= k else { return Array(0..<n) }
@@ -233,7 +243,7 @@ enum TranscriptMerger {
         return labels
     }
 
-    private static func silhouetteScore(_ embeddings: [[Float]], labels: [Int]) -> Double {
+    static func silhouetteScore(_ embeddings: [[Float]], labels: [Int]) -> Double {
         let n = embeddings.count
         let k = Set(labels).count
         guard k >= 2, n > k else { return -1 }
@@ -271,10 +281,11 @@ enum TranscriptMerger {
             clusterSims[labels[i]] = (prev.sum + sim, prev.count + 1)
         }
         let avgSims = clusterSims.values.map { $0.sum / Double($0.count) }.sorted()
-        return avgSims.count >= 2 ? avgSims.last! - avgSims[avgSims.count - 2] : 1.0
+        guard avgSims.count >= 2, let best = avgSims.last else { return 1.0 }
+        return best - avgSims[avgSims.count - 2]
     }
 
-    private static func cosineSim(_ a: [Float], _ b: [Float]) -> Float {
+    static func cosineSim(_ a: [Float], _ b: [Float]) -> Float {
         var dot: Float = 0, normA: Float = 0, normB: Float = 0
         vDSP_dotpr(a, 1, b, 1, &dot, vDSP_Length(a.count))
         vDSP_dotpr(a, 1, a, 1, &normA, vDSP_Length(a.count))
@@ -291,7 +302,7 @@ enum TranscriptMerger {
 
     // MARK: - Punctuation Splitting
 
-    private static func splitAtPunctuation(_ tokens: [TokenTiming], minWords: Int = 3) -> [[TokenTiming]] {
+    static func splitAtPunctuation(_ tokens: [TokenTiming], minWords: Int = 3) -> [[TokenTiming]] {
         var subs: [[TokenTiming]] = []
         var current: [TokenTiming] = []
 
@@ -352,7 +363,7 @@ enum TranscriptMerger {
 
     // MARK: - Smoothing
 
-    private static func smoothRuns(
+    static func smoothRuns(
         _ labeled: [(token: TokenTiming, speaker: Int, confidence: Double)],
         minRun: Int
     ) -> [(token: TokenTiming, speaker: Int, confidence: Double)] {
@@ -377,7 +388,7 @@ enum TranscriptMerger {
 
     // MARK: - Output Building
 
-    private static func buildOutput(
+    static func buildOutput(
         _ labeled: [(token: TokenTiming, speaker: Int, confidence: Double)]
     ) -> [LabeledSegment] {
         var speakerOrder: [Int: String] = [:]

@@ -50,6 +50,13 @@ final class TranscriptionViewModel: ObservableObject {
         processNextIfNeeded()
     }
 
+    func retryFile(id: UUID) {
+        guard let index = fileQueue.firstIndex(where: { $0.id == id }),
+              case .error = fileQueue[index].status else { return }
+        fileQueue[index].status = .waiting
+        processNextIfNeeded()
+    }
+
     func removeFile(id: UUID) {
         guard let index = fileQueue.firstIndex(where: { $0.id == id }) else { return }
         let wasProcessing = fileQueue[index].status == .processing

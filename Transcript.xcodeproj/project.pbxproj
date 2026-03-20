@@ -17,7 +17,19 @@
 		A100000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A200000C /* Assets.xcassets */; };
 		A100000D /* TranscriptMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000F /* TranscriptMerger.swift */; };
 		A100000E /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = AB000001 /* FluidAudio */; };
+		C1000001 /* TranscriptMergerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000001 /* TranscriptMergerTests.swift */; };
+		C1000002 /* OutputGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000002 /* OutputGeneratorTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C8000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A8000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5000001;
+			remoteInfo = Transcript;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		A2000001 /* TranscriptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptApp.swift; sourceTree = "<group>"; };
@@ -32,6 +44,9 @@
 		A200000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A200000F /* TranscriptMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptMerger.swift; sourceTree = "<group>"; };
 		A2000010 /* Transcript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Transcript.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C2000001 /* TranscriptMergerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptMergerTests.swift; sourceTree = "<group>"; };
+		C2000002 /* OutputGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGeneratorTests.swift; sourceTree = "<group>"; };
+		C2000003 /* TranscriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranscriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,6 +58,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C3000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -50,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				A4000002 /* Transcript */,
+				C4000001 /* TranscriptTests */,
 				A4000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -76,8 +99,18 @@
 			isa = PBXGroup;
 			children = (
 				A2000010 /* Transcript.app */,
+				C2000003 /* TranscriptTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		C4000001 /* TranscriptTests */ = {
+			isa = PBXGroup;
+			children = (
+				C2000001 /* TranscriptMergerTests.swift */,
+				C2000002 /* OutputGeneratorTests.swift */,
+			);
+			path = TranscriptTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -102,6 +135,23 @@
 			productName = Transcript;
 			productReference = A2000010 /* Transcript.app */;
 			productType = "com.apple.product-type.application";
+		};
+		C5000001 /* TranscriptTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C7000001 /* Build configuration list for PBXNativeTarget "TranscriptTests" */;
+			buildPhases = (
+				C6000001 /* Sources */,
+				C3000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C9000001 /* PBXTargetDependency */,
+			);
+			name = TranscriptTests;
+			productName = TranscriptTests;
+			productReference = C2000003 /* TranscriptTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -130,6 +180,7 @@
 			projectRoot = "";
 			targets = (
 				A5000001 /* Transcript */,
+				C5000001 /* TranscriptTests */,
 			);
 		};
 /* End PBXProject section */
@@ -161,7 +212,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C6000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1000001 /* TranscriptMergerTests.swift in Sources */,
+				C1000002 /* OutputGeneratorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C9000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5000001 /* Transcript */;
+			targetProxy = C8000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A9000001 /* Debug */ = {
@@ -315,6 +383,40 @@
 			};
 			name = Release;
 		};
+		C9000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.TranscriptTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Transcript.app/Contents/MacOS/Transcript";
+			};
+			name = Debug;
+		};
+		C9000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.TranscriptTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Transcript.app/Contents/MacOS/Transcript";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -332,6 +434,15 @@
 			buildConfigurations = (
 				A9000003 /* Debug */,
 				A9000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C7000001 /* Build configuration list for PBXNativeTarget "TranscriptTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9000005 /* Debug */,
+				C9000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
