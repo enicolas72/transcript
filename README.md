@@ -30,17 +30,48 @@ xcodebuild -scheme Transcript -configuration Release build
 
 On first use, the app downloads and compiles CoreML models (~600 MB for ASR, ~100 MB for speaker embeddings). Subsequent launches are instant.
 
+## Tests
+
+The project includes unit tests and integration tests for the speaker detection pipeline.
+
+### Running unit tests
+
+Unit tests cover clustering algorithms and token processing. They run instantly with no external dependencies:
+
+1. Open `Transcript.xcodeproj` in Xcode
+2. Press `Cmd+U` to run all tests, or open the **Test Navigator** (diamond icon in the left sidebar) to run individual tests
+
+### Integration tests and fixture snapshots
+
+Integration tests in `SpeakerIntegrationTests.swift` run the real pipeline on audio fixtures in `TranscriptTests/Fixtures/`. Each fixture (e.g. `Joe Rogan 2331 - Jesse Michels.m4a`) generates matching snapshots with the same base name:
+
+- **`.json`** — pre-computed embeddings for offline clustering non-regression
+- **`.txt`** — reference transcript output for full-pipeline non-regression
+
+To generate (or regenerate) snapshots:
+
+1. **Run the app once** so that the WeSpeaker + ASR models are downloaded to Application Support
+2. Open `TranscriptTests/SpeakerIntegrationTests.swift` in Xcode
+3. In the editor gutter (left margin), find the **diamond icon** next to the test you want to run — click it to run just that test:
+   - `testSpeakerEmbeddingsAreDifferentForDifferentSpeakers` generates the `.json` snapshot
+   - `testFullPipelineTranscriptOutput` generates the `.txt` reference
+4. **Commit the generated files** — from that point on, `testClusteringFromSnapshot` and `testFullPipelineTranscriptOutput` run as non-regression tests
+
+To add a new fixture: drop an audio file in `TranscriptTests/Fixtures/`, update `fixtureName` in the test class, and run the integration tests to generate the snapshots.
+
 ## Architecture
 
 ```
 Transcript/
 ├── TranscriptApp.swift          # App entry point
-├── Models.swift                 # Data types, enums, errors
-├── TranscriptionViewModel.swift # UI state management, file queue, overwrite check
+├── Models.swift                 # Data types, enums, errors (incl. TimedWord)
+├── TranscriptionViewModel.swift # UI state management, file queue, retry, overwrite check
 ├── ContentView.swift            # Three-column layout (sidebar, log, file queue)
 ├── SidebarView.swift            # Settings panel
 ├── TranscriptionService.swift   # ASR + audio extraction via FluidAudio/AVFoundation
-├── TranscriptMerger.swift       # Per-sub-segment speaker embedding + clustering
+├── TranscriptMerger.swift       # Orchestrator: splits tokens, assigns speaker labels
+├── SpeakerClustering.swift      # Pure math: cosine similarity, k-means, silhouette scoring
+├── SpeakerEmbedding.swift       # CoreML model loading + WeSpeaker embedding computation
 └── OutputGenerator.swift        # TXT and SRT file generation
 ```
 

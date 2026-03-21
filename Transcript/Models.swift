@@ -84,6 +84,15 @@ struct LabeledSegment {
     let speaker: String
 }
 
+/// Lightweight timed word — our own type so that all speaker detection logic
+/// can be tested without importing FluidAudio. TokenTiming is converted to
+/// TimedWord at the boundary (in TranscriptMerger.merge).
+struct TimedWord {
+    let word: String
+    let startTime: TimeInterval
+    let endTime: TimeInterval
+}
+
 enum TranscriptionError: LocalizedError {
     case noOutput
     case emptyTranscription

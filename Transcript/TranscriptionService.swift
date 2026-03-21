@@ -39,7 +39,7 @@ final class TranscriptionService: @unchecked Sendable {
 
         onProgress(ProgressUpdate(kind: .status("Extracting audio...")))
         let wavFile = tmpDir.appendingPathComponent("audio.wav")
-        let samples = try await extractAudioSamples(from: fileURL)
+        let samples = try await Self.extractAudioSamples(from: fileURL)
         let wavData = try AudioWAV.data(from: samples, sampleRate: 16000)
         try wavData.write(to: wavFile)
         onProgress(ProgressUpdate(kind: .log("Audio extracted: \(samples.count / 16000)s")))
@@ -179,7 +179,8 @@ final class TranscriptionService: @unchecked Sendable {
 
     // MARK: - Audio Extraction
 
-    private func extractAudioSamples(from url: URL) async throws -> [Float] {
+    /// Extract 16kHz mono Float32 samples from any audio/video file.
+    static func extractAudioSamples(from url: URL) async throws -> [Float] {
         let asset = AVURLAsset(url: url)
         let tracks = try await asset.loadTracks(withMediaType: .audio)
         guard let track = tracks.first else {

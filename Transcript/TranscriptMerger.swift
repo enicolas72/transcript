@@ -1,27 +1,14 @@
 import Foundation
-import CoreML
 import FluidAudio
-import Accelerate
 
 /// Merges ASR tokens with speaker detection using per-sub-segment neural embeddings.
 ///
-/// Strategy (mirrors the Python resemblyzer approach):
-/// 1. Split ASR tokens at sentence punctuation into sub-segments
-/// 2. Compute WeSpeaker neural embedding for each sub-segment
-/// 3. Cluster embeddings to identify speakers
-/// 4. Apply continuation carrying and run-length smoothing
+/// This is the orchestrator — it converts TokenTiming (FluidAudio) to TimedWord
+/// at the boundary, then delegates to SpeakerEmbedding (CoreML) and
+/// SpeakerClustering (pure math). All internal processing uses TimedWord.
 enum TranscriptMerger {
 
-    private static let sampleRate = 16000
-    // WeSpeaker expects 10 seconds of audio at 16kHz = 160,000 samples
-    private static let modelWindowSamples = 160_000
-    // FBank output has 998 frames for 10s of audio; the Embedding model's weights
-    // mask has 589 entries (segmentation temporal resolution for 10s window).
-    // Both values are fixed by the CoreML model architecture — do not change
-    // unless the upstream FBank/Embedding .mlmodelc files change.
-    private static let maskFrames = 589
-
-    // MARK: - Public API
+    // MARK: - Public API (FluidAudio boundary)
 
     static func merge(
         tokens: [TokenTiming],
@@ -29,17 +16,20 @@ enum TranscriptMerger {
     ) throws -> [LabeledSegment] {
         guard !tokens.isEmpty else { return [] }
 
-        // Load FBank + Embedding models from FluidAudio cache
-        let models = try loadModels()
+        // Convert to our own type at the boundary
+        let words = tokens.map { TimedWord(word: $0.token, startTime: $0.startTime, endTime: $0.endTime) }
 
-        // Split tokens into sub-segments at sentence punctuation
-        let subs = splitAtPunctuation(tokens)
+        // Load WeSpeaker CoreML models
+        let models = try SpeakerEmbedding.loadModels()
+
+        // Split words into sub-segments at sentence punctuation
+        let subs = splitAtPunctuation(words)
 
         // Compute one neural embedding per sub-segment
         var subEmbeddings: [[Float]] = []
         for sub in subs {
             guard let first = sub.first, let last = sub.last else { continue }
-            let emb = try computeEmbedding(
+            let emb = try SpeakerEmbedding.computeEmbedding(
                 models: models,
                 audioSamples: audioSamples,
                 startTime: first.startTime,
@@ -49,267 +39,35 @@ enum TranscriptMerger {
         }
 
         // Cluster sub-segment embeddings into speakers
-        let (labels, _) = clusterEmbeddings(subEmbeddings, maxSpeakers: 6)
+        let (labels, _) = SpeakerClustering.clusterEmbeddings(subEmbeddings, maxSpeakers: 6)
 
-        // Build labeled tokens with confidence
-        var labeledTokens: [(token: TokenTiming, speaker: Int, confidence: Double)] = []
+        // Build labeled words with confidence
+        var labeledWords: [(word: TimedWord, speaker: Int, confidence: Double)] = []
         for (i, sub) in subs.enumerated() {
-            let conf = clusterConfidence(subEmbeddings[i], allEmbeddings: subEmbeddings, labels: labels)
-            for t in sub {
-                labeledTokens.append((token: t, speaker: labels[i], confidence: conf))
+            let conf = SpeakerClustering.clusterConfidence(subEmbeddings[i], allEmbeddings: subEmbeddings, labels: labels)
+            for w in sub {
+                labeledWords.append((word: w, speaker: labels[i], confidence: conf))
             }
         }
 
         // Post-process: continuation carrying + smoothing
-        labeledTokens = carryAcrossContinuations(labeledTokens, subs: subs)
-        labeledTokens = smoothRuns(labeledTokens, minRun: 5)
+        labeledWords = carryAcrossContinuations(labeledWords, subs: subs)
+        labeledWords = smoothRuns(labeledWords, minRun: 5)
 
         // Reorder by first appearance and build output
-        return buildOutput(labeledTokens)
-    }
-
-    // MARK: - Model Loading
-
-    private struct EmbeddingModels {
-        let fbankModel: MLModel
-        let embeddingModel: MLModel
-    }
-
-    private static func loadModels() throws -> EmbeddingModels {
-        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            throw TranscriptionError.diarizationFailed("Could not locate Application Support directory")
-        }
-        let modelsDir = appSupport.appendingPathComponent("FluidAudio/Models/speaker-diarization-coreml")
-
-        let config = MLModelConfiguration()
-        config.computeUnits = .cpuOnly  // FBank must run on CPU
-
-        let fbankModel = try MLModel(contentsOf: modelsDir.appendingPathComponent("FBank.mlmodelc"), configuration: config)
-
-        let embConfig = MLModelConfiguration()
-        embConfig.computeUnits = .all
-        let embeddingModel = try MLModel(contentsOf: modelsDir.appendingPathComponent("Embedding.mlmodelc"), configuration: embConfig)
-
-        return EmbeddingModels(fbankModel: fbankModel, embeddingModel: embeddingModel)
-    }
-
-    // MARK: - Per-Sub-Segment Embedding
-
-    // FBank model outputs 998 time frames for a 10-second input window
-    private static let fbankFrames = 998
-    // WeSpeaker ResNet34 produces 256-dimensional speaker embeddings
-    private static let embDim = 256
-
-    private static func computeEmbedding(
-        models: EmbeddingModels,
-        audioSamples: [Float],
-        startTime: TimeInterval,
-        endTime: TimeInterval
-    ) throws -> [Float] {
-        let startSample = max(0, Int(startTime * Double(sampleRate)))
-        let endSample = min(audioSamples.count, Int(endTime * Double(sampleRate)))
-
-        // Pad audio to 10-second window
-        var paddedAudio = [Float](repeating: 0, count: modelWindowSamples)
-        let copyCount = min(endSample - startSample, modelWindowSamples)
-        if copyCount > 0 && startSample < audioSamples.count {
-            for i in 0..<copyCount {
-                paddedAudio[i] = audioSamples[startSample + i]
-            }
-        }
-
-        // Step 1: Run FBank model — audio [1,1,160000] → fbank_features [1,1,80,998]
-        let audioArray = try MLMultiArray(shape: [1, 1, 160_000] as [NSNumber], dataType: .float32)
-        for i in 0..<modelWindowSamples {
-            audioArray[i] = NSNumber(value: paddedAudio[i])
-        }
-        let fbankInput = try MLDictionaryFeatureProvider(dictionary: ["audio": audioArray])
-        let fbankOutput = try models.fbankModel.prediction(from: fbankInput)
-        guard let fbankFeatures = fbankOutput.featureValue(for: "fbank_features")?.multiArrayValue else {
-            return [Float](repeating: 0, count: embDim)
-        }
-
-        // Step 2: Create weights mask — active frames proportional to audio duration
-        let duration = endTime - startTime
-        let activeFrames = max(1, min(maskFrames, Int(duration * Double(maskFrames) / 10.0)))
-        let weightsArray = try MLMultiArray(shape: [1, maskFrames as NSNumber], dataType: .float32)
-        for i in 0..<maskFrames {
-            weightsArray[i] = NSNumber(value: i < activeFrames ? Float(1.0) : Float(0.0))
-        }
-
-        // Step 3: Run Embedding model — fbank_features + weights → embedding
-        let embInput = try MLDictionaryFeatureProvider(dictionary: [
-            "fbank_features": fbankFeatures,
-            "weights": weightsArray
-        ])
-        let embOutput = try models.embeddingModel.prediction(from: embInput)
-        guard let embArray = embOutput.featureValue(for: "embedding")?.multiArrayValue else {
-            return [Float](repeating: 0, count: embDim)
-        }
-
-        // Extract 256-dim embedding
-        var embedding = [Float](repeating: 0, count: embDim)
-        for i in 0..<min(embDim, embArray.count) {
-            embedding[i] = embArray[i].floatValue
-        }
-
-        // L2 normalize
-        let norm = l2Norm(embedding)
-        if norm > 0 {
-            for i in 0..<embDim { embedding[i] /= norm }
-        }
-
-        return embedding
-    }
-
-    // MARK: - Clustering (cosine similarity + k-means)
-
-    static func clusterEmbeddings(
-        _ embeddings: [[Float]], maxSpeakers: Int
-    ) -> (labels: [Int], k: Int) {
-        let n = embeddings.count
-        guard n >= 2 else { return (Array(0..<n), n) }
-
-        // Try different k values, pick best silhouette
-        var bestLabels = [Int](repeating: 0, count: n)
-        var bestScore = -Double.infinity
-        var bestK = 2
-
-        for k in 2...min(maxSpeakers, n - 1) {
-            let labels = kMeans(embeddings, k: k)
-            let score = silhouetteScore(embeddings, labels: labels)
-            if score > bestScore {
-                bestScore = score
-                bestLabels = labels
-                bestK = k
-            }
-        }
-
-        return (bestLabels, bestK)
-    }
-
-    static func kMeans(_ embeddings: [[Float]], k: Int, maxIter: Int = 30) -> [Int] {
-        let n = embeddings.count
-        let dim = embeddings[0].count
-        guard n >= k else { return Array(0..<n) }
-
-        // Initialize centroids: first point + farthest points
-        var centroids = [embeddings[0]]
-        for _ in 1..<k {
-            var maxDist = -Float.infinity
-            var farthest = 0
-            for i in 0..<n {
-                let minDist = centroids.map { 1.0 - cosineSim(embeddings[i], $0) }.min()!
-                if minDist > maxDist {
-                    maxDist = minDist
-                    farthest = i
-                }
-            }
-            centroids.append(embeddings[farthest])
-        }
-
-        var labels = [Int](repeating: 0, count: n)
-
-        for _ in 0..<maxIter {
-            // Assign
-            var changed = false
-            for i in 0..<n {
-                var bestC = 0
-                var bestSim = -Float.infinity
-                for c in 0..<k {
-                    let sim = cosineSim(embeddings[i], centroids[c])
-                    if sim > bestSim { bestSim = sim; bestC = c }
-                }
-                if labels[i] != bestC { labels[i] = bestC; changed = true }
-            }
-            if !changed { break }
-
-            // Update centroids
-            for c in 0..<k {
-                var sum = [Float](repeating: 0, count: dim)
-                var count = 0
-                for i in 0..<n {
-                    if labels[i] == c {
-                        for d in 0..<dim { sum[d] += embeddings[i][d] }
-                        count += 1
-                    }
-                }
-                if count > 0 {
-                    let norm = l2Norm(sum)
-                    centroids[c] = norm > 0 ? sum.map { $0 / norm } : sum
-                }
-            }
-        }
-        return labels
-    }
-
-    static func silhouetteScore(_ embeddings: [[Float]], labels: [Int]) -> Double {
-        let n = embeddings.count
-        let k = Set(labels).count
-        guard k >= 2, n > k else { return -1 }
-
-        var total = 0.0
-        for i in 0..<n {
-            var intraSum = 0.0; var intraCount = 0
-            var interSums = [Int: (sum: Double, count: Int)]()
-
-            for j in 0..<n where j != i {
-                let dist = Double(1.0 - cosineSim(embeddings[i], embeddings[j]))
-                if labels[j] == labels[i] {
-                    intraSum += dist; intraCount += 1
-                } else {
-                    let prev = interSums[labels[j]] ?? (0, 0)
-                    interSums[labels[j]] = (prev.sum + dist, prev.count + 1)
-                }
-            }
-            let a = intraCount > 0 ? intraSum / Double(intraCount) : 0
-            let b = interSums.values.map { $0.sum / Double($0.count) }.min() ?? 0
-            total += (b - a) / max(a, b)
-        }
-        return total / Double(n)
-    }
-
-    private static func clusterConfidence(_ embedding: [Float], allEmbeddings: [[Float]], labels: [Int]) -> Double {
-        let k = Set(labels).count
-        guard k >= 2 else { return 1.0 }
-
-        // Compute mean similarity to each cluster
-        var clusterSims = [Int: (sum: Double, count: Int)]()
-        for (i, emb) in allEmbeddings.enumerated() {
-            let sim = Double(cosineSim(embedding, emb))
-            let prev = clusterSims[labels[i]] ?? (0, 0)
-            clusterSims[labels[i]] = (prev.sum + sim, prev.count + 1)
-        }
-        let avgSims = clusterSims.values.map { $0.sum / Double($0.count) }.sorted()
-        guard avgSims.count >= 2, let best = avgSims.last else { return 1.0 }
-        return best - avgSims[avgSims.count - 2]
-    }
-
-    static func cosineSim(_ a: [Float], _ b: [Float]) -> Float {
-        var dot: Float = 0, normA: Float = 0, normB: Float = 0
-        vDSP_dotpr(a, 1, b, 1, &dot, vDSP_Length(a.count))
-        vDSP_dotpr(a, 1, a, 1, &normA, vDSP_Length(a.count))
-        vDSP_dotpr(b, 1, b, 1, &normB, vDSP_Length(b.count))
-        let denom = sqrt(normA) * sqrt(normB)
-        return denom > 0 ? dot / denom : 0
-    }
-
-    private static func l2Norm(_ v: [Float]) -> Float {
-        var sum: Float = 0
-        vDSP_dotpr(v, 1, v, 1, &sum, vDSP_Length(v.count))
-        return sqrt(sum)
+        return buildOutput(labeledWords)
     }
 
     // MARK: - Punctuation Splitting
 
-    static func splitAtPunctuation(_ tokens: [TokenTiming], minWords: Int = 3) -> [[TokenTiming]] {
-        var subs: [[TokenTiming]] = []
-        var current: [TokenTiming] = []
+    static func splitAtPunctuation(_ words: [TimedWord], minWords: Int = 3) -> [[TimedWord]] {
+        var subs: [[TimedWord]] = []
+        var current: [TimedWord] = []
 
-        for t in tokens {
-            current.append(t)
-            let word = t.token.trimmingCharacters(in: .whitespaces)
-            if word.hasSuffix(".") || word.hasSuffix("?") || word.hasSuffix("!") {
+        for w in words {
+            current.append(w)
+            let text = w.word.trimmingCharacters(in: .whitespaces)
+            if text.hasSuffix(".") || text.hasSuffix("?") || text.hasSuffix("!") {
                 if current.count >= minWords {
                     subs.append(current)
                     current = []
@@ -323,15 +81,15 @@ enum TranscriptMerger {
                 subs[subs.count - 1].append(contentsOf: current)
             }
         }
-        return subs.isEmpty ? [tokens] : subs
+        return subs.isEmpty ? [words] : subs
     }
 
     // MARK: - Continuation Carrying
 
-    private static func carryAcrossContinuations(
-        _ labeled: [(token: TokenTiming, speaker: Int, confidence: Double)],
-        subs: [[TokenTiming]]
-    ) -> [(token: TokenTiming, speaker: Int, confidence: Double)] {
+    static func carryAcrossContinuations(
+        _ labeled: [(word: TimedWord, speaker: Int, confidence: Double)],
+        subs: [[TimedWord]]
+    ) -> [(word: TimedWord, speaker: Int, confidence: Double)] {
         var result = labeled
         let confs = result.map(\.confidence)
         let medianConf = confs.sorted()[confs.count / 2]
@@ -354,8 +112,8 @@ enum TranscriptMerger {
             }
 
             prevSpeaker = result[tokenIdx].speaker
-            let lastWord = sub.last?.token.trimmingCharacters(in: .whitespaces) ?? ""
-            prevEndedWithPunct = lastWord.hasSuffix(".") || lastWord.hasSuffix("?") || lastWord.hasSuffix("!")
+            let lastText = sub.last?.word.trimmingCharacters(in: .whitespaces) ?? ""
+            prevEndedWithPunct = lastText.hasSuffix(".") || lastText.hasSuffix("?") || lastText.hasSuffix("!")
             tokenIdx += subLen
         }
         return result
@@ -364,9 +122,9 @@ enum TranscriptMerger {
     // MARK: - Smoothing
 
     static func smoothRuns(
-        _ labeled: [(token: TokenTiming, speaker: Int, confidence: Double)],
+        _ labeled: [(word: TimedWord, speaker: Int, confidence: Double)],
         minRun: Int
-    ) -> [(token: TokenTiming, speaker: Int, confidence: Double)] {
+    ) -> [(word: TimedWord, speaker: Int, confidence: Double)] {
         var result = labeled
         var changed = true
         while changed {
@@ -389,7 +147,7 @@ enum TranscriptMerger {
     // MARK: - Output Building
 
     static func buildOutput(
-        _ labeled: [(token: TokenTiming, speaker: Int, confidence: Double)]
+        _ labeled: [(word: TimedWord, speaker: Int, confidence: Double)]
     ) -> [LabeledSegment] {
         var speakerOrder: [Int: String] = [:]
         var nextLabel = 0
@@ -415,12 +173,12 @@ enum TranscriptMerger {
                         text: currentText.trimmingCharacters(in: .whitespaces), speaker: currentSpeaker))
                 }
                 currentSpeaker = label
-                currentText = lt.token.token
-                segStart = lt.token.startTime
+                currentText = lt.word.word
+                segStart = lt.word.startTime
             } else {
-                currentText += lt.token.token
+                currentText += lt.word.word
             }
-            segEnd = lt.token.endTime
+            segEnd = lt.word.endTime
         }
         if !currentText.isEmpty {
             result.append(LabeledSegment(start: segStart, end: segEnd,

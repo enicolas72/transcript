@@ -17,8 +17,12 @@
 		A100000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A200000C /* Assets.xcassets */; };
 		A100000D /* TranscriptMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000F /* TranscriptMerger.swift */; };
 		A100000E /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = AB000001 /* FluidAudio */; };
+		A100000F /* SpeakerClustering.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011 /* SpeakerClustering.swift */; };
+		A1000010 /* SpeakerEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012 /* SpeakerEmbedding.swift */; };
 		C1000001 /* TranscriptMergerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000001 /* TranscriptMergerTests.swift */; };
 		C1000002 /* OutputGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000002 /* OutputGeneratorTests.swift */; };
+		C1000003 /* SpeakerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000004 /* SpeakerIntegrationTests.swift */; };
+		C1000004 /* Joe Rogan 2331 - Jesse Michels.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,9 +48,15 @@
 		A200000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A200000F /* TranscriptMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptMerger.swift; sourceTree = "<group>"; };
 		A2000010 /* Transcript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Transcript.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2000011 /* SpeakerClustering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerClustering.swift; sourceTree = "<group>"; };
+		A2000012 /* SpeakerEmbedding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerEmbedding.swift; sourceTree = "<group>"; };
 		C2000001 /* TranscriptMergerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptMergerTests.swift; sourceTree = "<group>"; };
 		C2000002 /* OutputGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGeneratorTests.swift; sourceTree = "<group>"; };
 		C2000003 /* TranscriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranscriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C2000004 /* SpeakerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerIntegrationTests.swift; sourceTree = "<group>"; };
+		C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Joe Rogan 2331 - Jesse Michels.m4a"; sourceTree = "<group>"; };
+		D2000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		D2000002 /* THOUGHTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THOUGHTS.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,10 +77,13 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+
 /* Begin PBXGroup section */
 		A4000001 = {
 			isa = PBXGroup;
 			children = (
+				D2000001 /* README.md */,
+				D2000002 /* THOUGHTS.md */,
 				A4000002 /* Transcript */,
 				C4000001 /* TranscriptTests */,
 				A4000003 /* Products */,
@@ -87,6 +100,8 @@
 				A2000008 /* SidebarView.swift */,
 				A2000002 /* TranscriptionService.swift */,
 				A200000F /* TranscriptMerger.swift */,
+				A2000011 /* SpeakerClustering.swift */,
+				A2000012 /* SpeakerEmbedding.swift */,
 				A200000A /* OutputGenerator.swift */,
 				A200000C /* Assets.xcassets */,
 				A2000003 /* Info.plist */,
@@ -109,8 +124,18 @@
 			children = (
 				C2000001 /* TranscriptMergerTests.swift */,
 				C2000002 /* OutputGeneratorTests.swift */,
+				C2000004 /* SpeakerIntegrationTests.swift */,
+				C4000002 /* Fixtures */,
 			);
 			path = TranscriptTests;
+			sourceTree = "<group>";
+		};
+		C4000002 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */,
+			);
+			path = Fixtures;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -142,6 +167,7 @@
 			buildPhases = (
 				C6000001 /* Sources */,
 				C3000001 /* Frameworks */,
+				C3000002 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -194,6 +220,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C3000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1000004 /* Joe Rogan 2331 - Jesse Michels.m4a in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -209,6 +243,8 @@
 				A1000002 /* TranscriptionService.swift in Sources */,
 				A1000008 /* OutputGenerator.swift in Sources */,
 				A100000D /* TranscriptMerger.swift in Sources */,
+				A100000F /* SpeakerClustering.swift in Sources */,
+				A1000010 /* SpeakerEmbedding.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +254,7 @@
 			files = (
 				C1000001 /* TranscriptMergerTests.swift in Sources */,
 				C1000002 /* OutputGeneratorTests.swift in Sources */,
+				C1000003 /* SpeakerIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
