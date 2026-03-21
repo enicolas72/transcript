@@ -1,5 +1,26 @@
 # Development Log
 
+## 2026-03-21 — Add command-line tool target
+
+### What was done
+
+- **Added `transcript` CLI target** — a command-line tool that reuses the 6 core logic files (Models, TranscriptionService, TranscriptMerger, SpeakerClustering, SpeakerEmbedding, OutputGenerator) from the GUI app.
+- **Single new file**: `TranscriptCLI/TranscriptCLI.swift` — an `AsyncParsableCommand` using swift-argument-parser.
+- **Added swift-argument-parser** (v1.5+) as an SPM dependency, linked only to the CLI target.
+- **Usage**: `transcript file1.mp4 file2.mp3 --output /dir --srt --no-speakers`. Status to stderr, output paths to stdout.
+- **Added `TranscriptCLI` Xcode scheme** for building the CLI from Xcode.
+- **Updated README** with CLI usage examples and architecture showing shared files.
+
+### Design decisions
+
+- **Shared source files, not a library**: the 6 logic files are added to both targets' Sources build phases (separate PBXBuildFile entries pointing to the same PBXFileReference). This avoids the complexity of extracting a framework/library while keeping both targets in sync. Dead code from `Models.swift` (GUI-specific types like `FileItem`, `TranscriptionSettings`) is stripped at link time.
+
+- **ArgumentParser over manual parsing**: the CLI supports variadic files, `--output`, `--no-speakers`, `--txt`, `--srt` — too many flags for reliable manual parsing. ArgumentParser gives free `--help`, validation, and type safety.
+
+- **Product name `transcript` (lowercase)**: CLI convention. The target name in the pbxproj is lowercase to produce a lowercase binary. The scheme is named `TranscriptCLI` to avoid case collision with the `Transcript` app scheme.
+
+- **stderr for status, stdout for paths**: allows piping (`transcript file.mp4 | xargs open`) and scripting while still seeing progress.
+
 ## 2026-03-21 — Separate speaker detection, add integration tests with fixture snapshots
 
 ### What was done

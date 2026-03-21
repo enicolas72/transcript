@@ -1,17 +1,17 @@
 # Transcript v0.1
 
-A fully native macOS app that transcribes audio and video files to text with speaker detection. Powered by [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet ASR + WeSpeaker diarization) via CoreML. Everything runs locally on-device — no cloud services, no API keys, no Python, no external dependencies.
+A fully native macOS transcription tool — GUI app and command-line — with automatic speaker detection. Powered by [FluidAudio](https://github.com/FluidInference/FluidAudio) (Parakeet ASR + WeSpeaker diarization) via CoreML. Everything runs locally on-device — no cloud services, no API keys, no Python, no external dependencies.
 
 ## Features
 
-- **Drag-and-drop** — drop any audio/video file onto the window to transcribe
+- **GUI app + CLI** — drag-and-drop desktop app and `transcript` command-line tool
 - **Multiple formats** — supports mp3, wav, m4a, flac, aac, aiff, mp4, mov
 - **Dual output** — generates `.txt` transcript and `.srt` subtitles
 - **Speaker detection** — identifies who spoke when, with automatic speaker count detection
 - **Multi-file queue** — process multiple files sequentially, with per-file status tracking
-- **Overwrite protection** — asks before overwriting existing output files
+- **Overwrite protection** — asks before overwriting existing output files (GUI)
 - **Real-time progress** — progress bar and live log during transcription
-- **Persistent settings** — output folder, formats, and speaker detection preferences are saved across launches
+- **Persistent settings** — output folder, formats, and speaker detection preferences are saved across launches (GUI)
 - **Self-contained** — models download automatically on first use, no Homebrew or pip needed
 
 ## Requirements
@@ -22,13 +22,37 @@ A fully native macOS app that transcribes audio and video files to text with spe
 
 ## Build & Run
 
-Open `Transcript.xcodeproj` in Xcode and hit Run, or:
+### GUI app
+
+Open `Transcript.xcodeproj` in Xcode, select the **Transcript** scheme, and hit Run.
+
+### Command-line tool
+
+Select the **TranscriptCLI** scheme in Xcode and build, or:
 
 ```bash
-xcodebuild -scheme Transcript -configuration Release build
+xcodebuild -scheme TranscriptCLI -configuration Release build
 ```
 
-On first use, the app downloads and compiles CoreML models (~600 MB for ASR, ~100 MB for speaker embeddings). Subsequent launches are instant.
+Usage:
+
+```bash
+# Transcribe with speaker detection (default: .txt output)
+transcript recording.mp4
+
+# Multiple files, custom output dir, with SRT subtitles
+transcript episode1.mp3 episode2.mp3 --output ~/transcripts --srt
+
+# Disable speaker detection
+transcript interview.wav --no-speakers
+
+# Both formats
+transcript podcast.m4a --txt --srt
+```
+
+Status messages go to stderr, output file paths go to stdout — so you can pipe: `transcript file.mp4 | xargs open`
+
+On first use, models are downloaded automatically (~600 MB for ASR, ~100 MB for speaker embeddings). Subsequent runs are instant.
 
 ## Tests
 
@@ -62,18 +86,23 @@ To add a new fixture: drop an audio file in `TranscriptTests/Fixtures/`, update 
 ## Architecture
 
 ```
-Transcript/
-├── TranscriptApp.swift          # App entry point
-├── Models.swift                 # Data types, enums, errors (incl. TimedWord)
-├── TranscriptionViewModel.swift # UI state management, file queue, retry, overwrite check
-├── ContentView.swift            # Three-column layout (sidebar, log, file queue)
-├── SidebarView.swift            # Settings panel
-├── TranscriptionService.swift   # ASR + audio extraction via FluidAudio/AVFoundation
-├── TranscriptMerger.swift       # Orchestrator: splits tokens, assigns speaker labels
-├── SpeakerClustering.swift      # Pure math: cosine similarity, k-means, silhouette scoring
-├── SpeakerEmbedding.swift       # CoreML model loading + WeSpeaker embedding computation
-└── OutputGenerator.swift        # TXT and SRT file generation
+Transcript/                         # GUI app (SwiftUI)
+├── TranscriptApp.swift             # App entry point
+├── Models.swift                    # Shared data types (TimedWord, LabeledSegment, errors)
+├── TranscriptionViewModel.swift    # UI state management, file queue, retry
+├── ContentView.swift               # Three-column layout (sidebar, log, file queue)
+├── SidebarView.swift               # Settings panel
+├── TranscriptionService.swift      # ASR + audio extraction (shared with CLI)
+├── TranscriptMerger.swift          # Speaker detection orchestrator (shared)
+├── SpeakerClustering.swift         # Pure math: k-means, silhouette scoring (shared)
+├── SpeakerEmbedding.swift          # CoreML WeSpeaker embedding computation (shared)
+└── OutputGenerator.swift           # TXT and SRT file generation (shared)
+
+TranscriptCLI/                      # Command-line tool
+└── TranscriptCLI.swift             # ArgumentParser entry point (uses shared logic)
 ```
+
+The 6 core logic files are shared between the GUI app and CLI targets. Only the UI files (`TranscriptApp`, `ViewModel`, `ContentView`, `SidebarView`) are app-specific.
 
 ## How it works
 

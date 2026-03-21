@@ -23,6 +23,15 @@
 		C1000002 /* OutputGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000002 /* OutputGeneratorTests.swift */; };
 		C1000003 /* SpeakerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000004 /* SpeakerIntegrationTests.swift */; };
 		C1000004 /* Joe Rogan 2331 - Jesse Michels.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */; };
+		E1000001 /* TranscriptCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000001 /* TranscriptCLI.swift */; };
+		E1000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* Models.swift */; };
+		E1000003 /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* TranscriptionService.swift */; };
+		E1000004 /* TranscriptMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000F /* TranscriptMerger.swift */; };
+		E1000005 /* SpeakerClustering.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011 /* SpeakerClustering.swift */; };
+		E1000006 /* SpeakerEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012 /* SpeakerEmbedding.swift */; };
+		E1000007 /* OutputGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* OutputGenerator.swift */; };
+		E1000008 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = AB000002 /* FluidAudio */; };
+		E1000009 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = AB000003 /* ArgumentParser */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +66,8 @@
 		C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Joe Rogan 2331 - Jesse Michels.m4a"; sourceTree = "<group>"; };
 		D2000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		D2000002 /* THOUGHTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THOUGHTS.md; sourceTree = "<group>"; };
+		E2000001 /* TranscriptCLI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCLI.swift; sourceTree = "<group>"; };
+		E2000002 /* transcript */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = transcript; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,8 +86,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E3000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E1000008 /* FluidAudio in Frameworks */,
+				E1000009 /* ArgumentParser in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
-
 
 /* Begin PBXGroup section */
 		A4000001 = {
@@ -85,6 +104,7 @@
 				D2000001 /* README.md */,
 				D2000002 /* THOUGHTS.md */,
 				A4000002 /* Transcript */,
+				E4000001 /* TranscriptCLI */,
 				C4000001 /* TranscriptTests */,
 				A4000003 /* Products */,
 			);
@@ -115,6 +135,7 @@
 			children = (
 				A2000010 /* Transcript.app */,
 				C2000003 /* TranscriptTests.xctest */,
+				E2000002 /* transcript */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -136,6 +157,14 @@
 				C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */,
 			);
 			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		E4000001 /* TranscriptCLI */ = {
+			isa = PBXGroup;
+			children = (
+				E2000001 /* TranscriptCLI.swift */,
+			);
+			path = TranscriptCLI;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -179,6 +208,26 @@
 			productReference = C2000003 /* TranscriptTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		E5000001 /* transcript */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E7000001 /* Build configuration list for PBXNativeTarget "transcript" */;
+			buildPhases = (
+				E6000001 /* Sources */,
+				E3000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = transcript;
+			packageProductDependencies = (
+				AB000002 /* FluidAudio */,
+				AB000003 /* ArgumentParser */,
+			);
+			productName = transcript;
+			productReference = E2000002 /* transcript */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -200,6 +249,7 @@
 			mainGroup = A4000001;
 			packageReferences = (
 				AA000001 /* XCRemoteSwiftPackageReference "FluidAudio" */,
+				AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
 			);
 			productRefGroup = A4000003 /* Products */;
 			projectDirPath = "";
@@ -207,6 +257,7 @@
 			targets = (
 				A5000001 /* Transcript */,
 				C5000001 /* TranscriptTests */,
+				E5000001 /* transcript */,
 			);
 		};
 /* End PBXProject section */
@@ -255,6 +306,20 @@
 				C1000001 /* TranscriptMergerTests.swift in Sources */,
 				C1000002 /* OutputGeneratorTests.swift in Sources */,
 				C1000003 /* SpeakerIntegrationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E6000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E1000001 /* TranscriptCLI.swift in Sources */,
+				E1000002 /* Models.swift in Sources */,
+				E1000003 /* TranscriptionService.swift in Sources */,
+				E1000004 /* TranscriptMerger.swift in Sources */,
+				E1000005 /* SpeakerClustering.swift in Sources */,
+				E1000006 /* SpeakerEmbedding.swift in Sources */,
+				E1000007 /* OutputGenerator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -454,6 +519,26 @@
 			};
 			name = Release;
 		};
+		E9000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E9000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -484,6 +569,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		E7000001 /* Build configuration list for PBXNativeTarget "transcript" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E9000001 /* Debug */,
+				E9000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -495,6 +589,14 @@
 				minimumVersion = 0.12.4;
 			};
 		};
+		AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -502,6 +604,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA000001 /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
+		};
+		AB000002 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA000001 /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
+		};
+		AB000003 /* ArgumentParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
+			productName = ArgumentParser;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
