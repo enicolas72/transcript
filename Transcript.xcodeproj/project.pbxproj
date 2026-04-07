@@ -525,6 +525,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = TranscriptCLI;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -535,6 +536,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_MODULE_NAME = TranscriptCLI;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -586,7 +588,7 @@
 			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.12.4;
+				minimumVersion = 0.13.6;
 			};
 		};
 		AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
@@ -594,7 +596,7 @@
 			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.5.0;
+				minimumVersion = 1.7.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

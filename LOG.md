@@ -1,5 +1,31 @@
 # Development Log
 
+## 2026-04-07 — Multilingual transcription via Qwen3-ASR (diarize-first pipeline)
+
+### What was done
+
+- **Added French + 9 other languages** (`de, es, it, pt, nl, ru, zh, ja, ko`, plus `auto`) on top of the existing English path. New `TranscriptLanguage` enum in `Models.swift`, persisted in `TranscriptionSettings`.
+- **New pipeline path** in `TranscriptionService.swift`: when language is non-English, route to `runQwen3Pipeline` (`@available(macOS 15, *)`). English keeps the unchanged Parakeet path.
+- **`SpeakerDiarizer`** (in `SpeakerEmbedding.swift`): audio-driven sliding-window diarizer. 2-second non-overlapping windows → WeSpeaker embeddings → `SpeakerClustering.clusterEmbeddings` (silhouette-scored automatic k) → run-length smoothing → consecutive-window merge into `Turn(start, end, speaker)`. Independent of any ASR output.
+- **Per-turn ASR** in the Qwen3 path: each diarized turn's audio slice is fed to `Qwen3AsrManager.transcribe(audioSamples:language:)`. Output `LabeledSegment`s map directly to TXT/SRT.
+- **`OutputGenerator`** gained `generateTXTFromSegments` and `generateSRTFromSegments` for the segment-based (no word-timestamps) Qwen3 path. SRT cues are turn-level.
+- **Sidebar language picker** (`SidebarView`) and **`--language`/`-l` CLI flag** (`TranscriptCLI`) thread the choice through to the service.
+- **README + THOUGHTS updated** to document the inverted Qwen3 pipeline, the macOS 15 requirement for non-English, the `~1.75 GB` model footprint, and the trade-offs (per-turn cost, turn-level SRT granularity).
+
+### Bugs fixed along the way
+
+- **`PRODUCT_MODULE_NAME` collision** between the `Transcript` app target and the lowercase `transcript` CLI target. On case-insensitive APFS, `Transcript.swiftmodule` and `transcript.swiftmodule` collided in `Build/Products/Debug/`, the CLI's lowercase version overwrote the app's, and `@testable import Transcript` from the test target found nothing ("Unable to resolve module dependency: 'Transcript'"). Fixed by setting `PRODUCT_MODULE_NAME = TranscriptCLI` on the CLI target's Debug+Release configs while leaving the binary product name as `transcript`.
+- **`AsrManager.initialize(models:)` → `loadModels(_:)`** rename in the bumped FluidAudio version.
+- **`SpeakerClustering.silhouetteScore`** produced NaN for singleton clusters and made `clusterEmbeddings` over-cluster (k=5 winning over k=3 in tests). Now follows the sklearn convention: singleton clusters score 0, and `(b - a) / max(a, b)` is guarded against `0/0`.
+- **`TranscriptMerger.smoothRuns` (and parallel `SpeakerDiarizer.smoothLabels`)** cascaded wrongly when multiple adjacent runs were all below the threshold: a boundary run flipped into the next speaker, then the new boundary flipped, etc., propagating across the whole array. Fixed by only absorbing interior runs (`i > 0 && j < count`). Boundary noise is left alone; this matches the documented "absorb short interior runs into neighbours" intent.
+
+### Design decisions
+
+- **Diarize-first, transcribe-per-turn** (vs. transcribe-once-then-align). Qwen3-ASR returns no word-level timing, so any "single ASR call + alignment" approach would have to guess turn boundaries from character counts. Per-turn ASR is slower but structurally accurate — each turn's text comes from a single dedicated ASR call.
+- **`SpeakerDiarizer` lives inside `SpeakerEmbedding.swift`** (rather than its own file) to avoid editing the dense `project.pbxproj` for both targets. Same dependency surface, no behavioural cost.
+- **Type-erased `_qwen3Manager: Any?` cache** in `TranscriptionService` to avoid `@available` headaches on stored properties. Cast at use site inside an `if #available(macOS 15, *)` branch.
+- **Both pipelines emit the same `LabeledSegment` type**, so the formatters and the rest of the app remain language-agnostic. The only branch is at the top of `TranscriptionService.transcribe(...)`.
+
 ## 2026-03-21 — Add command-line tool target
 
 ### What was done

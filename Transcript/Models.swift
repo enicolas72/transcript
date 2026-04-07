@@ -29,6 +29,47 @@ enum OutputFolder: Equatable {
     case custom(URL)
 }
 
+/// Transcription language. English uses the Parakeet path (word-level
+/// timestamps + punctuation-driven diarization). All other languages use
+/// the Qwen3-ASR path (audio-driven diarization first, then per-turn ASR).
+enum TranscriptLanguage: String, CaseIterable, Identifiable, Equatable {
+    case english = "en"
+    case french = "fr"
+    case german = "de"
+    case spanish = "es"
+    case italian = "it"
+    case portuguese = "pt"
+    case dutch = "nl"
+    case russian = "ru"
+    case chinese = "zh"
+    case japanese = "ja"
+    case korean = "ko"
+    case auto = "auto"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .english: return "English"
+        case .french: return "French"
+        case .german: return "German"
+        case .spanish: return "Spanish"
+        case .italian: return "Italian"
+        case .portuguese: return "Portuguese"
+        case .dutch: return "Dutch"
+        case .russian: return "Russian"
+        case .chinese: return "Chinese"
+        case .japanese: return "Japanese"
+        case .korean: return "Korean"
+        case .auto: return "Automatic"
+        }
+    }
+
+    /// English is the only language served by Parakeet (which provides
+    /// word-level timestamps). Everything else is routed through Qwen3.
+    var usesParakeet: Bool { self == .english }
+}
+
 struct TranscriptionSettings {
     var outputFolder: OutputFolder {
         didSet {
@@ -49,6 +90,9 @@ struct TranscriptionSettings {
     var srtEnabled: Bool {
         didSet { UserDefaults.standard.set(srtEnabled, forKey: "srtEnabled") }
     }
+    var language: TranscriptLanguage {
+        didSet { UserDefaults.standard.set(language.rawValue, forKey: "language") }
+    }
 
     init() {
         let d = UserDefaults.standard
@@ -60,6 +104,7 @@ struct TranscriptionSettings {
         txtEnabled = d.object(forKey: "txtEnabled") as? Bool ?? true
         speakerDetection = d.object(forKey: "speakerDetection") as? Bool ?? true
         srtEnabled = d.object(forKey: "srtEnabled") as? Bool ?? true
+        language = TranscriptLanguage(rawValue: d.string(forKey: "language") ?? "en") ?? .english
     }
 }
 
@@ -98,6 +143,7 @@ enum TranscriptionError: LocalizedError {
     case emptyTranscription
     case modelDownloadFailed(String)
     case diarizationFailed(String)
+    case unsupportedOSForLanguage(String)
 
     var errorDescription: String? {
         switch self {
@@ -109,6 +155,8 @@ enum TranscriptionError: LocalizedError {
             return "Failed to download model: \(reason). Check your internet connection."
         case .diarizationFailed(let reason):
             return "Speaker detection failed: \(reason)"
+        case .unsupportedOSForLanguage(let lang):
+            return "Transcribing \(lang) requires macOS 15 or later (uses the Qwen3-ASR backend)."
         }
     }
 }

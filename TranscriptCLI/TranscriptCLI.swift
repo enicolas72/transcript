@@ -29,6 +29,13 @@ struct TranscriptCLI: AsyncParsableCommand {
     @Flag(name: .long, help: "Generate .srt subtitles.")
     var srt: Bool = false
 
+    @Option(name: .shortAndLong, help: """
+        Language: en, fr, de, es, it, pt, nl, ru, zh, ja, ko, or 'auto' \
+        for automatic detection. Non-English uses Qwen3-ASR (requires macOS 15+, \
+        ~1.75 GB on first run). Default: en.
+        """)
+    var language: String = "en"
+
     mutating func validate() throws {
         guard !files.isEmpty else {
             throw ValidationError("At least one input file is required.")
@@ -37,6 +44,9 @@ struct TranscriptCLI: AsyncParsableCommand {
             guard FileManager.default.fileExists(atPath: file) else {
                 throw ValidationError("File not found: \(file)")
             }
+        }
+        guard TranscriptLanguage(rawValue: language) != nil else {
+            throw ValidationError("Unknown language code: \(language). Use one of: \(TranscriptLanguage.allCases.map(\.rawValue).joined(separator: ", ")).")
         }
         if let dir = output {
             var isDir: ObjCBool = false
@@ -59,6 +69,7 @@ struct TranscriptCLI: AsyncParsableCommand {
         let txtEnabled = txt || !srt
         let srtEnabled = srt
 
+        let lang = TranscriptLanguage(rawValue: language) ?? .english
         let outputDir = output.map { URL(fileURLWithPath: $0) }
         let service = TranscriptionService()
 
@@ -76,7 +87,8 @@ struct TranscriptCLI: AsyncParsableCommand {
                     outputDir: outputDir,
                     txtEnabled: txtEnabled,
                     srtEnabled: srtEnabled,
-                    speakerDetection: speakers
+                    speakerDetection: speakers,
+                    language: lang
                 ) { update in
                     switch update.kind {
                     case .status(let text):

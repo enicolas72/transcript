@@ -39,10 +39,6 @@ Model downloads now automatically retry up to 3 times with exponential backoff (
 
 ## What's Still Not Great
 
-### English Only
-
-The Parakeet ASR model only handles English. This is documented, but it's a hard ceiling on usefulness. No indication of when or how multilingual support would be added.
-
 ### Test coverage is a start, not a finish
 
 See "Testing strategy" section below for the full plan.
@@ -77,9 +73,36 @@ The ResNet34 variant used here is an **r-vector** architecture: a standard ResNe
 - ICASSP 2023 paper: https://arxiv.org/abs/2210.17016
 - Pretrained model: https://huggingface.co/Wespeaker/wespeaker-voxceleb-resnet34-LM
 
-## Multi-Language
+## Multi-Language (added 2026-04-07)
 
-The English-only constraint does not come from speaker detection (WeSpeaker works in any language) — it comes from Parakeet, the ASR (automatic speech recognition) model that converts speech to text. Parakeet is a CTC-based model by NVIDIA, wrapped by FluidAudio, trained specifically on English speech data. It produces word-level text + timestamps. A French audio file would produce garbled English-ish output because the model's vocabulary, acoustic model, and language model are all English. Adding multilingual support means swapping or supplementing the ASR model — the diarization pipeline wouldn't need to change at all.
+The project now supports French, German, Spanish, Italian, Portuguese, Dutch, Russian, Chinese, Japanese, Korean (and an `auto` mode) in addition to English. There are **two pipelines** internally, selected by language:
+
+### English: Parakeet pipeline (unchanged)
+
+NVIDIA Parakeet TDT 0.6B via FluidAudio. Returns word-level `TokenTiming`s. The existing flow runs: ASR → split tokens at sentence punctuation → embed each sub-segment with WeSpeaker → cosine k-means → smoothing → output. This is the most accurate path because speaker boundaries are word-aligned.
+
+### Non-English: Qwen3-ASR pipeline (new, macOS 15+)
+
+Qwen3-ASR is a decoder-only multilingual ASR by Alibaba/Qwen, wrapped by FluidAudio. It supports 30+ languages (English name passed as a hint, or `nil` for automatic detection) and runs entirely on-device via CoreML. **Critically, it returns no word-level timestamps** — only a transcribed string per call. That single fact forces a different architecture.
+
+The pipeline is **inverted** relative to English: diarize first, then transcribe per turn.
+
+1. **Audio-driven diarization** (`SpeakerDiarizer` in `SpeakerEmbedding.swift`). Slide a 2-second non-overlapping window over the raw 16 kHz audio. For each window, compute a WeSpeaker embedding (the existing FBank → ResNet34 path). Cluster the embeddings with the same `SpeakerClustering.clusterEmbeddings` used by English (silhouette-scored automatic k). Smooth short runs. Merge consecutive same-speaker windows into `Turn(start, end, speaker)` records.
+2. **Per-turn ASR.** For each turn, slice the audio buffer and call `Qwen3AsrManager.transcribe(audioSamples:language:)`. The returned text is *the* speaker-correct text for that turn — no alignment guessing required, because each turn was a single ASR call. Skip turns shorter than 0.3 s; drop empty results.
+3. **Output.** Build `[LabeledSegment]` directly from `(start, end, text, speaker)`. The TXT output uses the same `generateTXTWithSpeakers` as English. The SRT output is turn-level (one cue per turn) — there are no word timestamps to subdivide further.
+
+When speaker detection is off in the non-English path, the whole file is treated as a single anonymous turn → one Qwen3 call → plain text out.
+
+**Why diarize-first instead of transcribe-then-align?** Because Qwen3 gives us no timing at all. The only alternative would be to call Qwen3 once on the whole file and proportionally distribute characters back to diarized intervals by duration — which is fast but introduces alignment guesswork at every turn boundary. Per-turn ASR is slower (one encoder pass per turn vs. one for the whole file) but it's structurally accurate.
+
+**Trade-offs:**
+
+- **Wall-clock cost.** A 60-min file with ~40 turns runs ~40 separate Qwen3 calls. Significantly slower than the English single-pass.
+- **Cue granularity.** SRT cues are turn-level (typically a few seconds to a minute). Fine for chapter-style subtitles, not for word-by-word karaoke.
+- **Model size.** Qwen3-ASR `.f32` is ~1.75 GB on disk (downloaded once). An `.int8` variant exists (~900 MB) and could be made user-selectable.
+- **Boundary smoothing.** WeSpeaker windows are 2 s, so speaker change points are quantized to that grid in the worst case. The run-length smoother removes 1-window outliers.
+
+The boundary between the two pipelines lives in `TranscriptionService.transcribe(...)`: a single `if language.usesParakeet` switch. Both backends share the same `LabeledSegment` output type and the same WeSpeaker embedding code, so the rest of the app (formatters, UI, CLI flag plumbing) is language-agnostic.
 
 ## Testing Strategy
 

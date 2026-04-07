@@ -10,6 +10,8 @@ struct SidebarView: View {
 
             outputFolderSection
             Divider()
+            languageSection
+            Divider()
             outputFormatsSection
 
             Spacer()
@@ -66,6 +68,32 @@ struct SidebarView: View {
                 .font(.caption)
                 .padding(.leading, 20)
                 .disabled(vm.isProcessing)
+            }
+        }
+    }
+
+    // MARK: - Language
+
+    private var languageSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Language")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            Picker("", selection: $vm.settings.language) {
+                ForEach(TranscriptLanguage.allCases) { lang in
+                    Text(lang.displayName).tag(lang)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .disabled(vm.isProcessing)
+
+            if vm.settings.language != .english {
+                Text("Non-English uses Qwen3-ASR (~1.75 GB, requires macOS 15+).")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

@@ -133,8 +133,13 @@ enum TranscriptMerger {
             while i < result.count {
                 var j = i
                 while j < result.count && result[j].speaker == result[i].speaker { j += 1 }
-                if j - i < minRun && (i > 0 || j < result.count) {
-                    let absorb = i > 0 ? result[i - 1].speaker : result[j].speaker
+                // Only absorb interior short runs. Absorbing boundary runs
+                // (i == 0 or j == count) cascades wrongly when several
+                // adjacent runs are all below threshold: the first boundary
+                // run flips into the next speaker, and subsequent passes
+                // propagate the flip across the whole array.
+                if j - i < minRun && i > 0 && j < result.count {
+                    let absorb = result[i - 1].speaker
                     for k in i..<j { result[k].speaker = absorb }
                     changed = true
                 }

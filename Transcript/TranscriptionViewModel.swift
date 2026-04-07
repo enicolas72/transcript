@@ -151,7 +151,8 @@ final class TranscriptionViewModel: ObservableObject {
                     outputDir: outputDir,
                     txtEnabled: capturedSettings.txtEnabled,
                     srtEnabled: capturedSettings.srtEnabled,
-                    speakerDetection: capturedSettings.speakerDetection
+                    speakerDetection: capturedSettings.speakerDetection,
+                    language: capturedSettings.language
                 ) { [weak self] update in
                     Task { @MainActor in
                         switch update.kind {

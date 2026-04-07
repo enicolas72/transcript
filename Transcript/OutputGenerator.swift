@@ -83,6 +83,38 @@ enum OutputGenerator {
         return lines.joined(separator: "\n\n") + "\n"
     }
 
+    // MARK: - Segment-based outputs (Qwen3 / non-English path)
+
+    /// Plain text from labeled segments — no speaker prefixes.
+    /// Used when speaker detection is off in the Qwen3 pipeline.
+    static func generateTXTFromSegments(_ segments: [LabeledSegment]) -> String {
+        guard !segments.isEmpty else { return "" }
+        return segments.map { $0.text.trimmingCharacters(in: .whitespaces) }
+            .joined(separator: " ") + "\n"
+    }
+
+    /// SRT subtitles from labeled segments — one cue per turn, prefixed with
+    /// the speaker label. The Qwen3 pipeline does not produce word timestamps,
+    /// so cue boundaries are necessarily turn-level (typically a few seconds
+    /// to a minute).
+    static func generateSRTFromSegments(_ segments: [LabeledSegment]) -> String {
+        var srt = ""
+        var index = 1
+        for seg in segments {
+            let text = seg.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { continue }
+            srt += "\(index)\n"
+            srt += "\(formatSRTTime(seg.start)) --> \(formatSRTTime(seg.end))\n"
+            if seg.speaker.isEmpty {
+                srt += "\(text)\n\n"
+            } else {
+                srt += "(\(seg.speaker)) \(text)\n\n"
+            }
+            index += 1
+        }
+        return srt
+    }
+
     // MARK: - SRT Formatting
 
     private static func formatSRTTime(_ seconds: Double) -> String {

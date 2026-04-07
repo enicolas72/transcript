@@ -100,9 +100,18 @@ enum SpeakerClustering {
                     interSums[labels[j]] = (prev.sum + dist, prev.count + 1)
                 }
             }
-            let a = intraCount > 0 ? intraSum / Double(intraCount) : 0
+            // Singleton clusters are undefined for silhouette; sklearn's
+            // convention is to count them as 0 (so degenerate over-clustering
+            // doesn't artificially win the score).
+            if intraCount == 0 {
+                continue
+            }
+            let a = intraSum / Double(intraCount)
             let b = interSums.values.map { $0.sum / Double($0.count) }.min() ?? 0
-            total += (b - a) / max(a, b)
+            let denom = max(a, b)
+            // If both intra and inter distances are zero (e.g. all points
+            // identical), the silhouette is undefined — treat as 0.
+            total += denom > 0 ? (b - a) / denom : 0
         }
         return total / Double(n)
     }
