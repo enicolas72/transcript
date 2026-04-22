@@ -5,12 +5,14 @@ import ArgumentParser
 struct TranscriptCLI: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "transcript",
-        abstract: "Transcribe audio and video files with speaker detection.",
+        abstract: "Transcribe audio and video files via xAI Speech-to-Text.",
         discussion: """
-            Transcribes one or more audio/video files using on-device Parakeet ASR \
-            with optional WeSpeaker speaker detection. Outputs .txt and/or .srt files.
+            Sends each file to xAI's STT API (https://api.x.ai/v1/stt) and \
+            writes .txt and/or .srt next to the input. Word-level timestamps \
+            and speaker diarization are returned in a single API call.
 
-            On first run, models are downloaded automatically (~700 MB).
+            The API key is read (in order): --api-key flag, $XAI_API_KEY \
+            environment variable, or the key saved by the GUI app.
             """
     )
 
@@ -20,8 +22,8 @@ struct TranscriptCLI: AsyncParsableCommand {
     @Option(name: .shortAndLong, help: "Output directory (default: same as input file).")
     var output: String?
 
-    @Flag(name: .long, inversion: .prefixedNo, help: "Enable speaker detection (default: on).")
-    var speakers: Bool = true
+    @Flag(name: .long, inversion: .prefixedNo, help: "Enable speaker detection (currently ignored — xAI diarize=true OOMs).")
+    var speakers: Bool = false
 
     @Flag(name: .long, help: "Generate .txt transcript (default if no format specified).")
     var txt: Bool = false
@@ -31,10 +33,12 @@ struct TranscriptCLI: AsyncParsableCommand {
 
     @Option(name: .shortAndLong, help: """
         Language: en, fr, de, es, it, pt, nl, ru, zh, ja, ko, or 'auto' \
-        for automatic detection. Non-English uses Qwen3-ASR (requires macOS 15+, \
-        ~1.75 GB on first run). Default: en.
+        for automatic detection. Default: en.
         """)
     var language: String = "en"
+
+    @Option(name: .long, help: "xAI API key. Overrides $XAI_API_KEY and the GUI's saved key.")
+    var apiKey: String?
 
     mutating func validate() throws {
         guard !files.isEmpty else {
@@ -73,6 +77,21 @@ struct TranscriptCLI: AsyncParsableCommand {
         let outputDir = output.map { URL(fileURLWithPath: $0) }
         let service = TranscriptionService()
 
+        let resolvedKey: String = {
+            if let k = apiKey, !k.isEmpty { return k }
+            if let k = ProcessInfo.processInfo.environment["XAI_API_KEY"], !k.isEmpty { return k }
+            return UserDefaults.standard.string(forKey: "xAIApiKey") ?? ""
+        }()
+
+        if resolvedKey.isEmpty {
+            log("Error: no xAI API key. Pass --api-key, set $XAI_API_KEY, or save one in the GUI app.")
+            throw ExitCode.failure
+        }
+
+        if speakers {
+            log("Note: --speakers is currently ignored (xAI diarize=true OOMs); proceeding without speaker detection.")
+        }
+
         for (i, file) in files.enumerated() {
             let url = URL(fileURLWithPath: file)
             let name = url.lastPathComponent
@@ -87,8 +106,9 @@ struct TranscriptCLI: AsyncParsableCommand {
                     outputDir: outputDir,
                     txtEnabled: txtEnabled,
                     srtEnabled: srtEnabled,
-                    speakerDetection: speakers,
-                    language: lang
+                    speakerDetection: false,
+                    language: lang,
+                    apiKey: resolvedKey
                 ) { update in
                     switch update.kind {
                     case .status(let text):

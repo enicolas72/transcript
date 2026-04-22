@@ -29,9 +29,8 @@ enum OutputFolder: Equatable {
     case custom(URL)
 }
 
-/// Transcription language. English uses the Parakeet path (word-level
-/// timestamps + punctuation-driven diarization). All other languages use
-/// the Qwen3-ASR path (audio-driven diarization first, then per-turn ASR).
+/// Transcription language. Mapped 1:1 onto xAI's STT language hint (except
+/// `.auto`, which omits the hint and lets the API auto-detect).
 enum TranscriptLanguage: String, CaseIterable, Identifiable, Equatable {
     case english = "en"
     case french = "fr"
@@ -64,10 +63,6 @@ enum TranscriptLanguage: String, CaseIterable, Identifiable, Equatable {
         case .auto: return "Automatic"
         }
     }
-
-    /// English is the only language served by Parakeet (which provides
-    /// word-level timestamps). Everything else is routed through Qwen3.
-    var usesParakeet: Bool { self == .english }
 }
 
 struct TranscriptionSettings {
@@ -93,6 +88,9 @@ struct TranscriptionSettings {
     var language: TranscriptLanguage {
         didSet { UserDefaults.standard.set(language.rawValue, forKey: "language") }
     }
+    var apiKey: String {
+        didSet { UserDefaults.standard.set(apiKey, forKey: "xAIApiKey") }
+    }
 
     init() {
         let d = UserDefaults.standard
@@ -105,6 +103,7 @@ struct TranscriptionSettings {
         speakerDetection = d.object(forKey: "speakerDetection") as? Bool ?? true
         srtEnabled = d.object(forKey: "srtEnabled") as? Bool ?? true
         language = TranscriptLanguage(rawValue: d.string(forKey: "language") ?? "en") ?? .english
+        apiKey = d.string(forKey: "xAIApiKey") ?? ""
     }
 }
 
@@ -126,24 +125,14 @@ struct LabeledSegment {
     let start: Double
     let end: Double
     let text: String
+    /// Speaker label (e.g. "Speaker A") or an empty string when diarization
+    /// was disabled.
     let speaker: String
-}
-
-/// Lightweight timed word — our own type so that all speaker detection logic
-/// can be tested without importing FluidAudio. TokenTiming is converted to
-/// TimedWord at the boundary (in TranscriptMerger.merge).
-struct TimedWord {
-    let word: String
-    let startTime: TimeInterval
-    let endTime: TimeInterval
 }
 
 enum TranscriptionError: LocalizedError {
     case noOutput
     case emptyTranscription
-    case modelDownloadFailed(String)
-    case diarizationFailed(String)
-    case unsupportedOSForLanguage(String)
 
     var errorDescription: String? {
         switch self {
@@ -151,12 +140,6 @@ enum TranscriptionError: LocalizedError {
             return "No audio track found. Check that the input is a valid audio/video file."
         case .emptyTranscription:
             return "Transcription produced no words. The file may contain no speech."
-        case .modelDownloadFailed(let reason):
-            return "Failed to download model: \(reason). Check your internet connection."
-        case .diarizationFailed(let reason):
-            return "Speaker detection failed: \(reason)"
-        case .unsupportedOSForLanguage(let lang):
-            return "Transcribing \(lang) requires macOS 15 or later (uses the Qwen3-ASR backend)."
         }
     }
 }

@@ -1,5 +1,65 @@
 # Development Log
 
+## 2026-04-22 (latest) — Temporarily disable speaker detection (xAI diarize OOMs)
+
+### What was done
+
+- **Hid the "Speaker detection" toggle** in `SidebarView`. The `speakerDetection` setting still lives in `TranscriptionSettings` / `UserDefaults` so the toggle can be re-enabled in one commented-out block once xAI ships a fix.
+- **Pinned `speakerDetection: false`** at both service call sites (`TranscriptionViewModel` for the GUI, `TranscriptCLI` for the command line). Belt-and-suspenders — even if an old UserDefaults value persisted `true`, the call site overrides it.
+- **CLI `--speakers` flag now defaults to `false`** and prints a one-line note if the user explicitly passes `--speakers`. Help text updated to call out the status.
+
+### Why
+
+Upstream bug: `wss://api.x.ai/v1/stt?diarize=true` and `POST /v1/stt` with `diarize=true` both return `CUDA error: out of memory` (or `CUBLAS_STATUS_INTERNAL_ERROR`) on anything longer than ~1 minute. Even an 11-minute clip reliably triggers it. With `diarize=false` the streaming path is clean — great transcription quality confirmed by the user. Support request has been filed with xAI.
+
+### How to restore when xAI fixes it
+
+1. Un-comment the Toggle block in `SidebarView.swift`
+2. Restore `speakerDetection: capturedSettings.speakerDetection` in `TranscriptionViewModel`
+3. Restore `speakerDetection: speakers` + the default `= true` on `--speakers` in `TranscriptCLI`
+4. Remove the warning note in `TranscriptCLI`
+
+## 2026-04-22 (later) — Switch from batch POST to streaming WebSocket
+
+### What was done
+
+- **Replaced `POST /v1/stt` with `wss://api.x.ai/v1/stt`.** The batch POST timed out at exactly our `timeoutIntervalForRequest` ceiling (300 s) on a 107-minute file — the API can't assemble a transcript for that size synchronously inside a single HTTP request. The streaming endpoint processes chunks as they arrive, so the round-trip matches the duration of the upload, not the duration of the audio.
+- **New `AudioExtractor.PCMReader`.** `AVAssetReader` + `AVAssetReaderTrackOutput` configured for 16 kHz mono Int16 LE. `next()` returns the next ~16 kB (~250 ms) chunk; nil when exhausted. We never hold more than one chunk in memory, so RAM usage is flat regardless of audio length.
+- **`XAIClient.streamingTranscribe`.** Opens a `URLSessionWebSocketTask` with `Authorization: Bearer …` and query params (`sample_rate=16000&encoding=pcm&diarize=true&language=…`). Uses `withThrowingTaskGroup` to run a sender (PCM chunks → binary frames → `{"type":"audio.done"}` sentinel) concurrently with a receiver loop that decodes `transcript.partial` / `transcript.done` events.
+- **Chunk-final partials stream into the log.** Every `transcript.partial` with `is_final=true` (≈ every 3 s of speech) is logged with a `…` prefix, so the user sees words appearing live. The authoritative words list still comes from `transcript.done`.
+- **Real upload progress.** Progress bar maps bytes-sent / total-PCM-bytes into 10–85 %; the remaining 15 % covers the tail between the last audio chunk and `transcript.done` + disk writes.
+- **Dropped** the intermediate M4A transcoding step — streaming PCM straight from `AVAssetReader` removes the temp file, removes the AAC encoder pass, and removes the in-memory multipart body we were building for the batch POST.
+
+### Bug fixed along the way
+
+- `CMBlockBufferGetDataPointer` returns only the first contiguous range; switched to `CMBlockBufferGetDataLength` + `CMBlockBufferCopyDataBytes` so multi-block PCM buffers from `AVAssetReader` are fully captured.
+
+## 2026-04-22 — Replace on-device pipelines with the xAI Speech-to-Text API
+
+### What was done
+
+- **Removed the two on-device ASR pipelines** (Parakeet for English + Qwen3-ASR for other languages) along with the WeSpeaker diarization stack. A single call to xAI's new `POST https://api.x.ai/v1/stt` endpoint now returns word-level timestamps *and* integer per-word speaker IDs in one shot.
+- **New `XAIClient`** — tiny multipart uploader. Streams the WAV body to disk, then `URLSession.upload(fromFile:)`s it with `language`, `diarize=true`, and `file` as the last multipart field (xAI requires this ordering). Decodes `{text, language, duration, words[{text, start, end, speaker?}]}`.
+- **New `AudioExtractor`** — replaces `FluidAudio.AudioWAV`. Uses `AVAssetReader` + `AVAssetWriter` to transcode any supported container into mono **AAC/M4A** at 16 kHz / 32 kbps. Speech lands at ~14 MB per hour (compare: 115 MB/h for the interim 16-bit PCM WAV we tried first), which uploads in seconds on a normal connection. _Note: the first cut of this change went out as uncompressed WAV and tripped URLSession's 60 s request timeout on a 107-min file; switched to AAC and raised the session timeouts (5 min per request, 1 h per resource) as the fix._
+- **`TranscriptionService` is now ~130 lines** (was 436). Single path: extract → upload → group words into `LabeledSegment`s by speaker boundary → write TXT/SRT. No more Parakeet/Qwen3 branching, no `@available(macOS 15, *)` dance, no CoreML model downloads, no per-turn ASR loop.
+- **API key stored in UserDefaults** (`xAIApiKey`), with a SecureField in the Settings sidebar. CLI reads the key from `--api-key`, then `$XAI_API_KEY`, then UserDefaults.
+- **Deleted** `TranscriptMerger.swift`, `SpeakerClustering.swift`, `SpeakerEmbedding.swift`, `SpeakerTool/` (standalone SPM package that duplicated the diarization logic), the `TranscriptTests/Fixtures/` audio + snapshots, `SpeakerIntegrationTests.swift`, and `TranscriptMergerTests.swift`. The `FluidAudio` SPM dependency is gone from `project.pbxproj` on both targets.
+- **`OutputGenerator` consolidated** on `LabeledSegment`. Two public entry points: `generateTXT`/`generateTXTWithSpeakers` and a single `generateSRT(_:withSpeakers:)`. The old token-based formatters (which leaked `FluidAudio.TokenTiming` into outputs) are gone.
+- **README overhauled** for the new architecture and API-key requirement. Pricing referenced ($0.10/audio-hour at the time of writing).
+
+### Design decisions
+
+- **Always transcode to WAV before upload.** xAI auto-detects most containers (MP3, M4A, MP4, FLAC, OGG, MKV…) but not AIFF or MOV. A uniform 16 kHz mono 16-bit PCM WAV keeps every input on the same code path and is already what the API prefers. For a 1-hour file this is ~115 MB.
+- **UserDefaults over Keychain** for the API key. Per user preference — this is a local dev tool, not a distributed app. Trivial to migrate to Keychain later if needed.
+- **Diarization is "per-word speaker IDs", not "speaker turns".** The API returns an integer `speaker` field on each word. The service groups consecutive same-speaker words into `LabeledSegment`s at the boundary, then relabels `{0,1,…}` → `"Speaker A", "Speaker B", …` in first-appearance order so the downstream TXT/SRT formatters stay unchanged.
+- **Streaming multipart + streaming WAV write.** Both the PCM encode and the multipart body are written to disk in chunks to keep peak RAM roughly the size of the Float32 sample buffer, not double that.
+
+### Ripple effects
+
+- Binary size drops dramatically (no CoreML weights bundled, no FluidAudio). First-run UX is "paste an API key" instead of "download ~700 MB–2.5 GB of models".
+- macOS 15 requirement for non-English is gone. Every language now works on macOS 14+.
+- Accuracy is now xAI's problem; on their phone-call benchmark Grok STT reports 5.0% WER, against WeSpeaker+Parakeet/Qwen3 we were subject to two independent error budgets stacked end-to-end.
+
 ## 2026-04-07 — Multilingual transcription via Qwen3-ASR (diarize-first pipeline)
 
 ### What was done

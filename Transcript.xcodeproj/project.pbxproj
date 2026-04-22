@@ -15,23 +15,16 @@
 		A1000006 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* SidebarView.swift */; };
 		A1000008 /* OutputGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* OutputGenerator.swift */; };
 		A100000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A200000C /* Assets.xcassets */; };
-		A100000D /* TranscriptMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000F /* TranscriptMerger.swift */; };
-		A100000E /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = AB000001 /* FluidAudio */; };
-		A100000F /* SpeakerClustering.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011 /* SpeakerClustering.swift */; };
-		A1000010 /* SpeakerEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012 /* SpeakerEmbedding.swift */; };
-		C1000001 /* TranscriptMergerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000001 /* TranscriptMergerTests.swift */; };
+		A1000011 /* AudioExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013 /* AudioExtractor.swift */; };
+		A1000012 /* XAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014 /* XAIClient.swift */; };
 		C1000002 /* OutputGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000002 /* OutputGeneratorTests.swift */; };
-		C1000003 /* SpeakerIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000004 /* SpeakerIntegrationTests.swift */; };
-		C1000004 /* Joe Rogan 2331 - Jesse Michels.m4a in Resources */ = {isa = PBXBuildFile; fileRef = C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */; };
 		E1000001 /* TranscriptCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000001 /* TranscriptCLI.swift */; };
 		E1000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* Models.swift */; };
 		E1000003 /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* TranscriptionService.swift */; };
-		E1000004 /* TranscriptMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000F /* TranscriptMerger.swift */; };
-		E1000005 /* SpeakerClustering.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011 /* SpeakerClustering.swift */; };
-		E1000006 /* SpeakerEmbedding.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012 /* SpeakerEmbedding.swift */; };
 		E1000007 /* OutputGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* OutputGenerator.swift */; };
-		E1000008 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = AB000002 /* FluidAudio */; };
 		E1000009 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = AB000003 /* ArgumentParser */; };
+		E1000010 /* AudioExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013 /* AudioExtractor.swift */; };
+		E1000011 /* XAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014 /* XAIClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,15 +48,11 @@
 		A2000008 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		A200000A /* OutputGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGenerator.swift; sourceTree = "<group>"; };
 		A200000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A200000F /* TranscriptMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptMerger.swift; sourceTree = "<group>"; };
 		A2000010 /* Transcript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Transcript.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A2000011 /* SpeakerClustering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerClustering.swift; sourceTree = "<group>"; };
-		A2000012 /* SpeakerEmbedding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerEmbedding.swift; sourceTree = "<group>"; };
-		C2000001 /* TranscriptMergerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptMergerTests.swift; sourceTree = "<group>"; };
+		A2000013 /* AudioExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioExtractor.swift; sourceTree = "<group>"; };
+		A2000014 /* XAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XAIClient.swift; sourceTree = "<group>"; };
 		C2000002 /* OutputGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGeneratorTests.swift; sourceTree = "<group>"; };
 		C2000003 /* TranscriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranscriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C2000004 /* SpeakerIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerIntegrationTests.swift; sourceTree = "<group>"; };
-		C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Joe Rogan 2331 - Jesse Michels.m4a"; sourceTree = "<group>"; };
 		D2000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		D2000002 /* THOUGHTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THOUGHTS.md; sourceTree = "<group>"; };
 		E2000001 /* TranscriptCLI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCLI.swift; sourceTree = "<group>"; };
@@ -75,7 +64,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A100000E /* FluidAudio in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,7 +78,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E1000008 /* FluidAudio in Frameworks */,
 				E1000009 /* ArgumentParser in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -119,9 +106,8 @@
 				A2000007 /* ContentView.swift */,
 				A2000008 /* SidebarView.swift */,
 				A2000002 /* TranscriptionService.swift */,
-				A200000F /* TranscriptMerger.swift */,
-				A2000011 /* SpeakerClustering.swift */,
-				A2000012 /* SpeakerEmbedding.swift */,
+				A2000013 /* AudioExtractor.swift */,
+				A2000014 /* XAIClient.swift */,
 				A200000A /* OutputGenerator.swift */,
 				A200000C /* Assets.xcassets */,
 				A2000003 /* Info.plist */,
@@ -143,20 +129,9 @@
 		C4000001 /* TranscriptTests */ = {
 			isa = PBXGroup;
 			children = (
-				C2000001 /* TranscriptMergerTests.swift */,
 				C2000002 /* OutputGeneratorTests.swift */,
-				C2000004 /* SpeakerIntegrationTests.swift */,
-				C4000002 /* Fixtures */,
 			);
 			path = TranscriptTests;
-			sourceTree = "<group>";
-		};
-		C4000002 /* Fixtures */ = {
-			isa = PBXGroup;
-			children = (
-				C2000005 /* Joe Rogan 2331 - Jesse Michels.m4a */,
-			);
-			path = Fixtures;
 			sourceTree = "<group>";
 		};
 		E4000001 /* TranscriptCLI */ = {
@@ -184,7 +159,6 @@
 			);
 			name = Transcript;
 			packageProductDependencies = (
-				AB000001 /* FluidAudio */,
 			);
 			productName = Transcript;
 			productReference = A2000010 /* Transcript.app */;
@@ -221,7 +195,6 @@
 			);
 			name = transcript;
 			packageProductDependencies = (
-				AB000002 /* FluidAudio */,
 				AB000003 /* ArgumentParser */,
 			);
 			productName = transcript;
@@ -248,7 +221,6 @@
 			);
 			mainGroup = A4000001;
 			packageReferences = (
-				AA000001 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 				AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
 			);
 			productRefGroup = A4000003 /* Products */;
@@ -275,7 +247,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C1000004 /* Joe Rogan 2331 - Jesse Michels.m4a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,9 +264,8 @@
 				A1000006 /* SidebarView.swift in Sources */,
 				A1000002 /* TranscriptionService.swift in Sources */,
 				A1000008 /* OutputGenerator.swift in Sources */,
-				A100000D /* TranscriptMerger.swift in Sources */,
-				A100000F /* SpeakerClustering.swift in Sources */,
-				A1000010 /* SpeakerEmbedding.swift in Sources */,
+				A1000011 /* AudioExtractor.swift in Sources */,
+				A1000012 /* XAIClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -303,9 +273,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C1000001 /* TranscriptMergerTests.swift in Sources */,
 				C1000002 /* OutputGeneratorTests.swift in Sources */,
-				C1000003 /* SpeakerIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -316,10 +284,9 @@
 				E1000001 /* TranscriptCLI.swift in Sources */,
 				E1000002 /* Models.swift in Sources */,
 				E1000003 /* TranscriptionService.swift in Sources */,
-				E1000004 /* TranscriptMerger.swift in Sources */,
-				E1000005 /* SpeakerClustering.swift in Sources */,
-				E1000006 /* SpeakerEmbedding.swift in Sources */,
 				E1000007 /* OutputGenerator.swift in Sources */,
+				E1000010 /* AudioExtractor.swift in Sources */,
+				E1000011 /* XAIClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -583,14 +550,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		AA000001 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.13.6;
-			};
-		};
 		AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
@@ -602,16 +561,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		AB000001 /* FluidAudio */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA000001 /* XCRemoteSwiftPackageReference "FluidAudio" */;
-			productName = FluidAudio;
-		};
-		AB000002 /* FluidAudio */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA000001 /* XCRemoteSwiftPackageReference "FluidAudio" */;
-			productName = FluidAudio;
-		};
 		AB000003 /* ArgumentParser */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;

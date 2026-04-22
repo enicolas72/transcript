@@ -93,6 +93,11 @@ final class TranscriptionViewModel: ObservableObject {
             processNextIfNeeded()
             return
         }
+        guard !settings.apiKey.isEmpty else {
+            fileQueue[index].status = .error("xAI API key is not set (see Settings).")
+            processNextIfNeeded()
+            return
+        }
 
         // Check for existing output files before starting
         let fileURL = fileQueue[index].url
@@ -146,13 +151,17 @@ final class TranscriptionViewModel: ObservableObject {
         currentTask = Task {
             do {
                 let service = TranscriptionService()
+                // NOTE: speakerDetection is pinned to false until xAI fixes
+                // the diarize=true OOM. The Settings sidebar hides the
+                // toggle; this guard also covers the stored-preference case.
                 let result = try await service.transcribe(
                     fileURL: fileURL,
                     outputDir: outputDir,
                     txtEnabled: capturedSettings.txtEnabled,
                     srtEnabled: capturedSettings.srtEnabled,
-                    speakerDetection: capturedSettings.speakerDetection,
-                    language: capturedSettings.language
+                    speakerDetection: false,
+                    language: capturedSettings.language,
+                    apiKey: capturedSettings.apiKey
                 ) { [weak self] update in
                     Task { @MainActor in
                         switch update.kind {

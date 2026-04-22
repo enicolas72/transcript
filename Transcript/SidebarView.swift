@@ -13,6 +13,8 @@ struct SidebarView: View {
             languageSection
             Divider()
             outputFormatsSection
+            Divider()
+            apiKeySection
 
             Spacer()
         }
@@ -88,9 +90,23 @@ struct SidebarView: View {
             .pickerStyle(.menu)
             .labelsHidden()
             .disabled(vm.isProcessing)
+        }
+    }
 
-            if vm.settings.language != .english {
-                Text("Non-English uses Qwen3-ASR (~1.75 GB, requires macOS 15+).")
+    // MARK: - API Key
+
+    private var apiKeySection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("xAI API key")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            SecureField("sk-…", text: $vm.settings.apiKey)
+                .textFieldStyle(.roundedBorder)
+                .disabled(vm.isProcessing)
+
+            if vm.settings.apiKey.isEmpty {
+                Text("Required. Get one at console.x.ai.")
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -111,13 +127,18 @@ struct SidebarView: View {
             }
             .disabled(vm.isProcessing)
 
-            if vm.settings.txtEnabled {
-                Toggle(isOn: $vm.settings.speakerDetection) {
-                    Text("Speaker detection")
-                }
-                .padding(.leading, 20)
-                .disabled(vm.isProcessing)
-            }
+            // Speaker detection toggle is temporarily hidden: xAI's STT API
+            // OOMs on diarize=true for multi-minute inputs (reported upstream).
+            // The underlying setting is still persisted so the UI can be
+            // restored by un-commenting the Toggle below once xAI ships a fix.
+            //
+            // if vm.settings.txtEnabled {
+            //     Toggle(isOn: $vm.settings.speakerDetection) {
+            //         Text("Speaker detection")
+            //     }
+            //     .padding(.leading, 20)
+            //     .disabled(vm.isProcessing)
+            // }
 
             Toggle(isOn: $vm.settings.srtEnabled) {
                 Text(".srt subtitles")

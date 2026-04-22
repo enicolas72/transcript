@@ -1,5 +1,7 @@
 # Honest Take on the State of Transcript
 
+> **2026-04-22 update.** The entire on-device pipeline described below has been ripped out and replaced by a single call to xAI's `POST /v1/stt`, which returns word-level timestamps and per-word speaker IDs in one shot. The WeSpeaker + Parakeet/Qwen3 architecture doesn't ship anymore — the app is now a ~100-line API client wrapped in SwiftUI. The original design rationale is preserved below because the *problem shape* (diarization vs. ASR alignment, language-dependent pipelines, per-turn cost) is still informative for anyone considering going back to an offline stack.
+
 _Written 2026-03-19_
 
 ## What This Is

@@ -1,22 +1,10 @@
 import Foundation
-import AVFoundation
-import FluidAudio
 
-/// Thread-safety: cached managers are written once during ensureModels() and
-/// read thereafter. The lock ensures safe publication across actor boundaries.
-final class TranscriptionService: @unchecked Sendable {
-    private let lock = NSLock()
-    private var _asrManager: AsrManager?
-    private var asrManager: AsrManager? {
-        get { lock.withLock { _asrManager } }
-        set { lock.withLock { _asrManager = newValue } }
-    }
-    /// Type-erased Qwen3AsrManager (only available on macOS 15+).
-    private var _qwen3Manager: Any?
-    private var qwen3Manager: Any? {
-        get { lock.withLock { _qwen3Manager } }
-        set { lock.withLock { _qwen3Manager = newValue } }
-    }
+/// Thin orchestrator around the xAI Speech-to-Text streaming WebSocket.
+/// Reads the source file as PCM, pipes it through `XAIClient`, groups the
+/// word-level results into speaker-coherent `LabeledSegment`s, and writes
+/// `.txt` / `.srt`.
+struct TranscriptionService {
 
     func transcribe(
         fileURL: URL,
@@ -24,413 +12,190 @@ final class TranscriptionService: @unchecked Sendable {
         txtEnabled: Bool,
         srtEnabled: Bool,
         speakerDetection: Bool,
-        language: TranscriptLanguage = .english,
+        language: TranscriptLanguage,
+        apiKey: String,
         onProgress: @escaping @Sendable (ProgressUpdate) -> Void
     ) async throws -> TranscriptionResult {
 
-        // 1. Prepare models for the chosen language
-        try await ensureModels(language: language, speakerDetection: speakerDetection, onProgress: onProgress)
+        guard !apiKey.isEmpty else { throw XAIError.missingAPIKey }
 
-        // 2. Probe duration
-        let duration = await probeDuration(fileURL: fileURL)
-        if let dur = duration {
-            let m = Int(dur) / 60; let s = Int(dur) % 60
-            onProgress(ProgressUpdate(kind: .log("File duration: \(m)m\(s)s")))
+        let log: @Sendable (String) -> Void = { text in
+            onProgress(ProgressUpdate(kind: .log(text)))
         }
 
-        // 3. Extract audio (16 kHz mono Float32)
+        log("Start: \(fileURL.lastPathComponent)")
+
+        if let duration = await AudioExtractor.probeDuration(fileURL) {
+            let m = Int(duration) / 60
+            let s = Int(duration) % 60
+            log("File duration: \(m)m\(s)s")
+        }
+
         onProgress(ProgressUpdate(kind: .status("Extracting audio...")))
-        let samples = try await Self.extractAudioSamples(from: fileURL)
-        onProgress(ProgressUpdate(kind: .log("Audio extracted: \(samples.count / 16000)s")))
+        onProgress(ProgressUpdate(kind: .progress(0.05)))
+        log("Opening audio track (PCM16 LE mono @ 16 kHz)")
+        let reader = try await AudioExtractor.openPCMReader(fileURL)
+        log("Total PCM: \(ByteCountFormatter.string(fromByteCount: reader.totalBytes, countStyle: .binary))")
+
+        onProgress(ProgressUpdate(kind: .status("Streaming to xAI...")))
+        onProgress(ProgressUpdate(kind: .progress(0.10)))
+        log("Calling xAI Speech-to-Text (\(language.displayName), diarize=\(speakerDetection))…")
+
+        let response = try await XAIClient.streamingTranscribe(
+            reader: reader,
+            languageCode: language.xAICode,
+            diarize: speakerDetection,
+            apiKey: apiKey,
+            log: log,
+            onFinalPartial: { text in
+                onProgress(ProgressUpdate(kind: .log("… " + text)))
+            },
+            onUploadProgress: { sent, total in
+                guard total > 0 else { return }
+                // Streaming upload occupies 10–85%; the last 15% is for the
+                // server's final assembly + file writing.
+                let frac = 0.10 + 0.75 * Double(sent) / Double(total)
+                onProgress(ProgressUpdate(kind: .progress(frac)))
+                if sent >= total {
+                    onProgress(ProgressUpdate(kind: .status("Waiting for transcript.done...")))
+                }
+            }
+        )
+
+        log("Transcription complete: \(response.words.count) words")
+        onProgress(ProgressUpdate(kind: .progress(0.9)))
 
         let destDir = outputDir ?? fileURL.deletingLastPathComponent()
-        let inputBase = fileURL.deletingPathExtension().lastPathComponent
-
-        // 4. Branch on language: English uses Parakeet (with word timestamps),
-        //    everything else uses Qwen3 with audio-driven diarization.
-        if language.usesParakeet {
-            return try await runParakeetPipeline(
-                fileURL: fileURL, samples: samples,
-                destDir: destDir, inputBase: inputBase,
-                txtEnabled: txtEnabled, srtEnabled: srtEnabled,
-                speakerDetection: speakerDetection,
-                onProgress: onProgress)
+        let base = fileURL.deletingPathExtension().lastPathComponent
+        let segments: [LabeledSegment]
+        if speakerDetection {
+            segments = groupByWordSpeaker(
+                words: response.words,
+                fallbackText: response.text
+            )
         } else {
-            if #available(macOS 15, *) {
-                return try await runQwen3Pipeline(
-                    samples: samples,
-                    destDir: destDir, inputBase: inputBase,
-                    txtEnabled: txtEnabled, srtEnabled: srtEnabled,
-                    speakerDetection: speakerDetection,
-                    language: language,
-                    onProgress: onProgress)
-            } else {
-                throw TranscriptionError.unsupportedOSForLanguage(language.displayName)
-            }
-        }
-    }
-
-    // MARK: - Parakeet pipeline (English, word-timestamp aligned)
-
-    private func runParakeetPipeline(
-        fileURL: URL,
-        samples: [Float],
-        destDir: URL,
-        inputBase: String,
-        txtEnabled: Bool,
-        srtEnabled: Bool,
-        speakerDetection: Bool,
-        onProgress: @escaping @Sendable (ProgressUpdate) -> Void
-    ) async throws -> TranscriptionResult {
-
-        // Write a temp WAV for AsrManager
-        let tmpDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: tmpDir) }
-        let wavFile = tmpDir.appendingPathComponent("audio.wav")
-        let wavData = try AudioWAV.data(from: samples, sampleRate: 16000)
-        try wavData.write(to: wavFile)
-
-        onProgress(ProgressUpdate(kind: .status("Transcribing...")))
-        onProgress(ProgressUpdate(kind: .log("Running speech recognition (Parakeet, English)...")))
-
-        guard let asr = asrManager else {
-            throw TranscriptionError.noOutput
-        }
-        let asrResult = try await asr.transcribe(wavFile, source: .system)
-        guard let tokens = asrResult.tokenTimings, !tokens.isEmpty else {
-            throw TranscriptionError.emptyTranscription
+            segments = mapServerSegments(response.segments, fallbackText: response.text)
         }
 
-        onProgress(ProgressUpdate(kind: .log("Transcription complete: \(tokens.count) words")))
-        onProgress(ProgressUpdate(kind: .progress(0.7)))
+        if speakerDetection {
+            let speakerCount = Set(segments.map(\.speaker)).count
+            log("Detected \(speakerCount) speaker(s) across \(segments.count) segments")
+        }
 
         var txtPath: String? = nil
         var srtPath: String? = nil
 
         if txtEnabled {
-            let path = destDir.appendingPathComponent("\(inputBase).txt").path
-            let content: String
-            if speakerDetection {
-                do {
-                    onProgress(ProgressUpdate(kind: .status("Analyzing speakers...")))
-                    onProgress(ProgressUpdate(kind: .log("\nRunning speaker detection...")))
-                    let labeled = try TranscriptMerger.merge(tokens: tokens, audioSamples: samples)
-                    let speakerCount = Set(labeled.map(\.speaker)).count
-                    onProgress(ProgressUpdate(kind: .log("Detected \(speakerCount) speaker(s)")))
-                    content = OutputGenerator.generateTXTWithSpeakers(labeled)
-                } catch {
-                    onProgress(ProgressUpdate(kind: .log(
-                        "Speaker detection failed: \(error.localizedDescription). Continuing without speaker labels.")))
-                    content = OutputGenerator.generateTXTFromTokens(tokens)
-                }
-            } else {
-                content = OutputGenerator.generateTXTFromTokens(tokens)
-            }
+            let path = destDir.appendingPathComponent("\(base).txt").path
+            let content = speakerDetection
+                ? OutputGenerator.generateTXTWithSpeakers(segments)
+                : OutputGenerator.generateTXT(segments)
             try content.write(toFile: path, atomically: true, encoding: .utf8)
             txtPath = path
+            log("Wrote \(path)")
         }
 
         if srtEnabled {
-            let path = destDir.appendingPathComponent("\(inputBase).srt").path
-            let content = OutputGenerator.generateSRTFromTokens(tokens)
+            let path = destDir.appendingPathComponent("\(base).srt").path
+            let content = OutputGenerator.generateSRT(segments, withSpeakers: speakerDetection)
             try content.write(toFile: path, atomically: true, encoding: .utf8)
             srtPath = path
+            log("Wrote \(path)")
         }
 
         onProgress(ProgressUpdate(kind: .progress(1.0)))
         return TranscriptionResult(txtPath: txtPath, srtPath: srtPath)
     }
 
-    // MARK: - Qwen3 pipeline (multilingual, diarize-first then per-turn ASR)
+    // MARK: - Segment construction
 
-    @available(macOS 15, *)
-    private func runQwen3Pipeline(
-        samples: [Float],
-        destDir: URL,
-        inputBase: String,
-        txtEnabled: Bool,
-        srtEnabled: Bool,
-        speakerDetection: Bool,
-        language: TranscriptLanguage,
-        onProgress: @escaping @Sendable (ProgressUpdate) -> Void
-    ) async throws -> TranscriptionResult {
+    /// Non-diarized path: one `LabeledSegment` per server-emitted chunk-final
+    /// `transcript.partial` event. This preserves the natural ~3-second
+    /// speech chunking that the API produces; each becomes one SRT cue and
+    /// one TXT paragraph.
+    private func mapServerSegments(
+        _ segments: [XAIClient.Segment],
+        fallbackText: String
+    ) -> [LabeledSegment] {
+        if !segments.isEmpty {
+            return segments
+                .filter { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                .map { LabeledSegment(
+                    start: $0.start,
+                    end: $0.end,
+                    text: $0.text.trimmingCharacters(in: .whitespacesAndNewlines),
+                    speaker: ""
+                )}
+        }
+        let trimmed = fallbackText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? [] : [LabeledSegment(start: 0, end: 0, text: trimmed, speaker: "")]
+    }
 
-        guard let qwen3 = qwen3Manager as? Qwen3AsrManager else {
-            throw TranscriptionError.modelDownloadFailed("Qwen3 model not loaded")
+    /// Diarized path (currently unused — xAI streaming diarization OOMs as
+    /// of 2026-04-22): group consecutive same-speaker words into segments.
+    /// Kept so we can flip back on once xAI ships a fix.
+    private func groupByWordSpeaker(
+        words: [XAIClient.Word],
+        fallbackText: String
+    ) -> [LabeledSegment] {
+        guard !words.isEmpty else {
+            let trimmed = fallbackText.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? [] : [LabeledSegment(start: 0, end: 0, text: trimmed, speaker: "")]
         }
 
-        // The language hint for Qwen3 — pass nil for automatic detection.
-        let langHint: Qwen3AsrConfig.Language?
-        if language == .auto {
-            langHint = nil
-        } else {
-            langHint = Qwen3AsrConfig.Language(rawValue: language.rawValue)
+        var speakerLabels: [Int: String] = [:]
+        var nextLabelIndex = 0
+        func label(for id: Int?) -> String {
+            guard let id else { return "" }
+            if let existing = speakerLabels[id] { return existing }
+            let letter: String
+            if nextLabelIndex < 26 {
+                letter = String(Character(UnicodeScalar(65 + nextLabelIndex)!))
+            } else {
+                letter = "\(nextLabelIndex + 1)"
+            }
+            let name = "Speaker \(letter)"
+            speakerLabels[id] = name
+            nextLabelIndex += 1
+            return name
         }
-
-        // Build the speaker turns we'll feed Qwen3 with. If diarization is
-        // disabled, we treat the whole file as a single anonymous turn.
-        var labeledTurns: [(start: Double, end: Double, speaker: String)]
-        if speakerDetection {
-            onProgress(ProgressUpdate(kind: .status("Analyzing speakers...")))
-            onProgress(ProgressUpdate(kind: .log(
-                "Running speaker diarization (sliding-window WeSpeaker)...")))
-
-            let turns = try SpeakerDiarizer.diarize(
-                audioSamples: samples,
-                maxSpeakers: 6,
-                onProgress: { frac in
-                    Task { @MainActor in
-                        onProgress(ProgressUpdate(kind: .progress(0.3 + frac * 0.3)))
-                    }
-                }
-            )
-            let speakerCount = Set(turns.map(\.speaker)).count
-            onProgress(ProgressUpdate(kind: .log(
-                "Detected \(speakerCount) speaker(s) across \(turns.count) turns")))
-            labeledTurns = SpeakerDiarizer.assignLabels(turns)
-        } else {
-            let totalDuration = Double(samples.count) / 16000.0
-            labeledTurns = [(start: 0.0, end: totalDuration, speaker: "")]
-        }
-
-        // Transcribe each turn separately. Per-turn ASR is what gives us
-        // speaker-correct text without any forced text/time alignment.
-        onProgress(ProgressUpdate(kind: .status("Transcribing...")))
-        onProgress(ProgressUpdate(kind: .log(
-            "Running speech recognition (Qwen3-ASR, \(language.displayName))...")))
 
         var segments: [LabeledSegment] = []
-        for (i, turn) in labeledTurns.enumerated() {
-            let startSample = max(0, Int(turn.start * 16000))
-            let endSample = min(samples.count, Int(turn.end * 16000))
-            guard endSample > startSample else { continue }
-            // Skip turns shorter than 0.3 s — too short for stable ASR.
-            if Double(endSample - startSample) / 16000.0 < 0.3 { continue }
+        var currentSpeaker = label(for: words[0].speaker)
+        var currentStart = words[0].start
+        var currentEnd = words[0].end
+        var currentText = ""
 
-            let slice = Array(samples[startSample..<endSample])
-            do {
-                let text = try await qwen3.transcribe(
-                    audioSamples: slice,
-                    language: langHint
-                )
-                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    segments.append(LabeledSegment(
-                        start: turn.start, end: turn.end,
-                        text: trimmed, speaker: turn.speaker))
-                }
-            } catch {
-                onProgress(ProgressUpdate(kind: .log(
-                    "Turn \(i + 1) failed: \(error.localizedDescription)")))
+        func flush() {
+            let trimmed = currentText.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty else { return }
+            segments.append(LabeledSegment(
+                start: currentStart, end: currentEnd,
+                text: trimmed, speaker: currentSpeaker))
+        }
+
+        for (i, w) in words.enumerated() {
+            let wSpeaker = label(for: w.speaker)
+            if i > 0 && wSpeaker != currentSpeaker {
+                flush()
+                currentSpeaker = wSpeaker
+                currentStart = w.start
+                currentText = ""
             }
-
-            let frac = 0.6 + (0.35 * Double(i + 1) / Double(labeledTurns.count))
-            onProgress(ProgressUpdate(kind: .progress(frac)))
-        }
-
-        guard !segments.isEmpty else {
-            throw TranscriptionError.emptyTranscription
-        }
-        onProgress(ProgressUpdate(kind: .log("Transcription complete: \(segments.count) segments")))
-
-        var txtPath: String? = nil
-        var srtPath: String? = nil
-
-        if txtEnabled {
-            let path = destDir.appendingPathComponent("\(inputBase).txt").path
-            let content: String
-            if speakerDetection {
-                content = OutputGenerator.generateTXTWithSpeakers(segments)
-            } else {
-                content = OutputGenerator.generateTXTFromSegments(segments)
+            if !currentText.isEmpty && !w.text.hasPrefix(" ") && !currentText.hasSuffix(" ") {
+                currentText += " "
             }
-            try content.write(toFile: path, atomically: true, encoding: .utf8)
-            txtPath = path
+            currentText += w.text
+            currentEnd = w.end
         }
-
-        if srtEnabled {
-            let path = destDir.appendingPathComponent("\(inputBase).srt").path
-            let content = OutputGenerator.generateSRTFromSegments(segments)
-            try content.write(toFile: path, atomically: true, encoding: .utf8)
-            srtPath = path
-        }
-
-        onProgress(ProgressUpdate(kind: .progress(1.0)))
-        return TranscriptionResult(txtPath: txtPath, srtPath: srtPath)
+        flush()
+        return segments
     }
+}
 
-    // MARK: - Model Preparation
-
-    private static let maxRetries = 3
-
-    private func ensureModels(
-        language: TranscriptLanguage,
-        speakerDetection: Bool,
-        onProgress: @escaping @Sendable (ProgressUpdate) -> Void
-    ) async throws {
-        if language.usesParakeet {
-            try await ensureParakeet(onProgress: onProgress)
-        } else {
-            if #available(macOS 15, *) {
-                try await ensureQwen3(onProgress: onProgress)
-            } else {
-                throw TranscriptionError.unsupportedOSForLanguage(language.displayName)
-            }
-        }
-
-        // WeSpeaker is needed whenever speaker detection is on (for both
-        // pipelines: Parakeet uses it for sub-segment embeddings, Qwen3 uses
-        // it for sliding-window diarization).
-        if speakerDetection {
-            try await ensureSpeakerEmbedding(onProgress: onProgress)
-        }
-
-        onProgress(ProgressUpdate(kind: .progress(0.3)))
-    }
-
-    private func ensureParakeet(
-        onProgress: @escaping @Sendable (ProgressUpdate) -> Void
-    ) async throws {
-        if asrManager != nil { return }
-        onProgress(ProgressUpdate(kind: .status("Downloading speech recognition model...")))
-        onProgress(ProgressUpdate(kind: .log("Preparing ASR model (first run downloads ~600 MB)...")))
-
-        let models = try await withRetry(maxAttempts: Self.maxRetries, label: "ASR model download", onProgress: onProgress) {
-            try await AsrModels.downloadAndLoad(
-                version: .v3
-            ) { progress in
-                Task { @MainActor in
-                    onProgress(ProgressUpdate(kind: .progress(progress.fractionCompleted * 0.3)))
-                }
-            }
-        }
-        let asr = AsrManager()
-        try await asr.loadModels(models)
-        asrManager = asr
-        onProgress(ProgressUpdate(kind: .log("ASR model ready.")))
-    }
-
-    @available(macOS 15, *)
-    private func ensureQwen3(
-        onProgress: @escaping @Sendable (ProgressUpdate) -> Void
-    ) async throws {
-        if qwen3Manager is Qwen3AsrManager { return }
-        onProgress(ProgressUpdate(kind: .status("Downloading multilingual ASR model...")))
-        onProgress(ProgressUpdate(kind: .log("Preparing Qwen3-ASR model (first run downloads ~1.75 GB)...")))
-
-        let modelDir = try await withRetry(maxAttempts: Self.maxRetries, label: "Qwen3-ASR model download", onProgress: onProgress) {
-            try await Qwen3AsrModels.download(variant: .f32) { progress in
-                Task { @MainActor in
-                    onProgress(ProgressUpdate(kind: .progress(progress.fractionCompleted * 0.3)))
-                }
-            }
-        }
-        let manager = Qwen3AsrManager()
-        try await manager.loadModels(from: modelDir)
-        qwen3Manager = manager
-        onProgress(ProgressUpdate(kind: .log("Qwen3-ASR model ready.")))
-    }
-
-    private func ensureSpeakerEmbedding(
-        onProgress: @escaping @Sendable (ProgressUpdate) -> Void
-    ) async throws {
-        // Speaker embedding model is downloaded with the diarization models
-        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
-            throw TranscriptionError.modelDownloadFailed("Could not locate Application Support directory")
-        }
-        let embeddingModelPath = appSupport
-            .appendingPathComponent("FluidAudio/Models/speaker-diarization-coreml/Embedding.mlmodelc")
-        if FileManager.default.fileExists(atPath: embeddingModelPath.path) { return }
-
-        onProgress(ProgressUpdate(kind: .status("Downloading speaker detection model...")))
-        onProgress(ProgressUpdate(kind: .log("Preparing speaker embedding model (~100 MB)...")))
-
-        try await withRetry(maxAttempts: Self.maxRetries, label: "Speaker model download", onProgress: onProgress) {
-            let diarizer = OfflineDiarizerManager()
-            try await diarizer.prepareModels()
-        }
-        onProgress(ProgressUpdate(kind: .log("Speaker embedding model ready.")))
-    }
-
-    private func withRetry<T>(
-        maxAttempts: Int,
-        label: String,
-        onProgress: @escaping @Sendable (ProgressUpdate) -> Void,
-        operation: () async throws -> T
-    ) async throws -> T {
-        var lastError: Error?
-        for attempt in 1...maxAttempts {
-            do {
-                return try await operation()
-            } catch {
-                lastError = error
-                if attempt < maxAttempts {
-                    let delay = attempt * 2  // 2s, 4s backoff
-                    onProgress(ProgressUpdate(kind: .log(
-                        "\(label) failed (attempt \(attempt)/\(maxAttempts)): \(error.localizedDescription). Retrying in \(delay)s...")))
-                    try? await Task.sleep(for: .seconds(delay))
-                }
-            }
-        }
-        throw TranscriptionError.modelDownloadFailed(lastError?.localizedDescription ?? "Unknown error after \(maxAttempts) attempts")
-    }
-
-    // MARK: - Audio Extraction
-
-    /// Extract 16kHz mono Float32 samples from any audio/video file.
-    static func extractAudioSamples(from url: URL) async throws -> [Float] {
-        let asset = AVURLAsset(url: url)
-        let tracks = try await asset.loadTracks(withMediaType: .audio)
-        guard let track = tracks.first else {
-            throw TranscriptionError.noOutput
-        }
-
-        let reader = try AVAssetReader(asset: asset)
-        let outputSettings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatLinearPCM,
-            AVSampleRateKey: 16000,
-            AVNumberOfChannelsKey: 1,
-            AVLinearPCMBitDepthKey: 32,
-            AVLinearPCMIsFloatKey: true,
-            AVLinearPCMIsBigEndianKey: false,
-        ]
-        let trackOutput = AVAssetReaderTrackOutput(track: track, outputSettings: outputSettings)
-        reader.add(trackOutput)
-        reader.startReading()
-
-        var samples = [Float]()
-        while let buffer = trackOutput.copyNextSampleBuffer() {
-            guard let block = CMSampleBufferGetDataBuffer(buffer) else { continue }
-            var length = 0
-            var ptr: UnsafeMutablePointer<Int8>?
-            CMBlockBufferGetDataPointer(block, atOffset: 0, lengthAtOffsetOut: nil,
-                                        totalLengthOut: &length, dataPointerOut: &ptr)
-            if let ptr = ptr, length > 0 {
-                let count = length / MemoryLayout<Float>.size
-                ptr.withMemoryRebound(to: Float.self, capacity: count) { floatPtr in
-                    samples.append(contentsOf: UnsafeBufferPointer(start: floatPtr, count: count))
-                }
-            }
-        }
-
-        guard reader.status == .completed, !samples.isEmpty else {
-            throw TranscriptionError.noOutput
-        }
-        return samples
-    }
-
-    // MARK: - Duration Probe
-
-    private func probeDuration(fileURL: URL) async -> Double? {
-        let asset = AVURLAsset(url: fileURL)
-        do {
-            let duration = try await asset.load(.duration)
-            let seconds = CMTimeGetSeconds(duration)
-            return seconds.isFinite ? seconds : nil
-        } catch {
-            return nil
-        }
+extension TranscriptLanguage {
+    /// Language code to send to xAI. `auto` is expressed as "no hint".
+    var xAICode: String? {
+        self == .auto ? nil : rawValue
     }
 }
