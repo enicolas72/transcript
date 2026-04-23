@@ -7,7 +7,7 @@
     <key>CFBundleDisplayName</key>
     <string>xTranscript</string>
     <key>CFBundleIdentifier</key>
-    <string>com.local.transcript</string>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>

@@ -1,5 +1,42 @@
 # Development Log
 
+## 2026-04-23 (later) — Mac App Store prep: sandbox, privacy manifest, bookmarks
+
+### What was done
+
+- **App Sandbox enabled** in `Transcript.entitlements` with:
+  - `com.apple.security.app-sandbox = true`
+  - `com.apple.security.network.client = true` (outbound to api.x.ai)
+  - `com.apple.security.files.user-selected.read-write = true` (dropped inputs + chosen output folders)
+- **Security-scoped bookmarks** for the custom-output-folder setting. Under sandbox, a raw path string persisted to `UserDefaults` is useless across launches; `TranscriptionSettings` now stores `outputFolderBookmark` (Data) via `URL.bookmarkData(options: .withSecurityScope)` and resolves it on `init`, calling `startAccessingSecurityScopedResource()` so the scope is held for the app's lifetime. The old `outputFolder` key is no longer written.
+- **Bundle identifier** bumped from the local-dev placeholder `com.local.transcript` to `com.ericnicolas.xtranscript`. `Info.plist` now references `$(PRODUCT_BUNDLE_IDENTIFIER)` so the canonical definition lives in one place (pbxproj). **The chosen reverse-DNS is still a placeholder — search-replace before uploading to App Store Connect if you want a different domain.**
+- **Privacy Manifest** at `Transcript/PrivacyInfo.xcprivacy`, added to the Xcode project and the app target's Resources build phase so it ships in the bundle. Declares:
+  - `NSPrivacyTracking = false`, no tracking domains.
+  - Required-reason APIs: `UserDefaults` (reason `CA92.1`) + `FileTimestamp` (reason `3B52.1` for file size on user-provided files).
+  - Collected data: `AudioData`, not linked to user, not tracking, purpose = `AppFunctionality` (xAI transcription).
+- **Privacy policy** draft at `docs/privacy.md`. Host it at a public URL and paste the URL into App Store Connect. Reasonable GitHub Pages candidate.
+
+### Build verification
+
+- `codesign -d --entitlements -` on the built Debug `xTranscript.app` shows sandbox + network.client + user-selected.read-write are embedded.
+- `PrivacyInfo.xcprivacy` lands in `Resources/` inside the bundle.
+- 15 unit tests still pass.
+
+### Still to do before submitting
+
+- Apple Developer Program membership ($99/year).
+- Provision `com.ericnicolas.xtranscript` (or your chosen ID) as an App ID at developer.apple.com.
+- Create Mac App Distribution + Mac Installer Distribution certificates (Xcode does this automatically when you archive).
+- Create App Store Connect listing: name, description, keywords, screenshots (1280×800+), support URL, privacy-policy URL, pricing.
+- Reserve a unique App Store name (beware collisions with existing "Transcript"-prefixed apps).
+- Test the sandboxed Release build end-to-end: drop a file, save the API key, pick a custom output folder, relaunch, confirm the bookmark resolves and the folder is still writable.
+- App Review prep: "Demo Account / API Access" in App Store Connect — provide a throwaway xAI key reviewers can use, plus a one-line explanation of the BYO-key model.
+
+### Known risks
+
+- The "same as input" output mode may fail under sandbox if macOS doesn't grant write access to the dropped file's parent directory. If so, we'll need to either require a user-selected output folder for sandboxed builds or add a fallback to `~/Downloads`.
+- App Store review sometimes flags BYO-API-key apps as "not fully functional" under Guideline 2.1 / 4.2. If this becomes a blocker, distributing a notarized DMG outside the App Store is a viable alternative.
+
 ## 2026-04-23 — v1.0.0, rename to xTranscript, more unit tests
 
 ### What was done

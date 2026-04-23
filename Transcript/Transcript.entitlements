@@ -2,7 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Mac App Store requires App Sandbox. -->
     <key>com.apple.security.app-sandbox</key>
-    <false/>
+    <true/>
+
+    <!-- Outbound connections to api.x.ai (WebSocket STT). -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- Read dropped audio/video files and write .txt / .srt outputs to
+         folders the user has explicitly chosen (via drop or NSOpenPanel). -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
 </dict>
 </plist>

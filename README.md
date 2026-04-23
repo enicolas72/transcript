@@ -98,6 +98,28 @@ The 5 core logic files are shared between the GUI app and CLI targets. Only the 
 
 Minimal unit tests cover the text/SRT formatting (`TranscriptTests/OutputGeneratorTests.swift`). Run them with `Cmd+U` in Xcode.
 
+## Distribution
+
+The app is configured for Mac App Store submission:
+
+- **App Sandbox** is enabled (`Transcript.entitlements`) with
+  `network.client` (for the xAI API) and `files.user-selected.read-write`
+  (for dropped inputs and chosen output folders).
+- **Privacy Manifest** at `Transcript/PrivacyInfo.xcprivacy` declares
+  audio data collection with purpose = app functionality, and required-reason
+  API use for `UserDefaults` and file metadata reads.
+- **Bundle ID** is `com.ericnicolas.xtranscript` — **change this** to your
+  own reverse-DNS (`com.yourdomain.xtranscript`) in `project.pbxproj`
+  before submission.
+- **Encryption export compliance**: `ITSAppUsesNonExemptEncryption = false`
+  in `Info.plist` (system TLS only, no proprietary crypto).
+- **Privacy policy** draft at `docs/privacy.md` — host it (e.g. GitHub
+  Pages) and reference the public URL in App Store Connect.
+
+To archive for submission: Xcode → Product → Archive → Distribute App →
+App Store Connect. Requires an Apple Developer Program membership and
+a matching Mac App Distribution certificate.
+
 ## License
 
 MIT

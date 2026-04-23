@@ -66,13 +66,26 @@ enum TranscriptLanguage: String, CaseIterable, Identifiable, Equatable {
 }
 
 struct TranscriptionSettings {
+    /// Key under which the output folder is persisted. Under App Sandbox a
+    /// raw path is useless across launches, so we store a security-scoped
+    /// bookmark instead.
+    private static let outputFolderBookmarkKey = "outputFolderBookmark"
+
     var outputFolder: OutputFolder {
         didSet {
             switch outputFolder {
             case .sameAsInput:
-                UserDefaults.standard.removeObject(forKey: "outputFolder")
+                UserDefaults.standard.removeObject(forKey: Self.outputFolderBookmarkKey)
             case .custom(let url):
-                UserDefaults.standard.set(url.path, forKey: "outputFolder")
+                // Security-scoped bookmark so the app can reach the folder
+                // again on next launch under App Sandbox.
+                if let data = try? url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                ) {
+                    UserDefaults.standard.set(data, forKey: Self.outputFolderBookmarkKey)
+                }
             }
         }
     }
@@ -94,16 +107,33 @@ struct TranscriptionSettings {
 
     init() {
         let d = UserDefaults.standard
-        if let path = d.string(forKey: "outputFolder") {
-            outputFolder = .custom(URL(fileURLWithPath: path))
-        } else {
-            outputFolder = .sameAsInput
-        }
+        outputFolder = Self.resolveStoredOutputFolder()
         txtEnabled = d.object(forKey: "txtEnabled") as? Bool ?? true
         speakerDetection = d.object(forKey: "speakerDetection") as? Bool ?? true
         srtEnabled = d.object(forKey: "srtEnabled") as? Bool ?? true
         language = TranscriptLanguage(rawValue: d.string(forKey: "language") ?? "en") ?? .english
         apiKey = d.string(forKey: "xAIApiKey") ?? ""
+    }
+
+    /// Resolve the stored security-scoped bookmark, if any. `startAccessing…`
+    /// is called and left active for the lifetime of the app — writes to the
+    /// folder need the scope held.
+    private static func resolveStoredOutputFolder() -> OutputFolder {
+        guard let data = UserDefaults.standard.data(forKey: outputFolderBookmarkKey) else {
+            return .sameAsInput
+        }
+        var isStale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: data,
+            options: .withSecurityScope,
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ), !isStale else {
+            UserDefaults.standard.removeObject(forKey: outputFolderBookmarkKey)
+            return .sameAsInput
+        }
+        _ = url.startAccessingSecurityScopedResource()
+        return .custom(url)
     }
 }
 

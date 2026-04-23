@@ -17,6 +17,7 @@
 		A100000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A200000C /* Assets.xcassets */; };
 		A1000011 /* AudioExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013 /* AudioExtractor.swift */; };
 		A1000012 /* XAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014 /* XAIClient.swift */; };
+		A1000013 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A2000015 /* PrivacyInfo.xcprivacy */; };
 		C1000002 /* OutputGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000002 /* OutputGeneratorTests.swift */; };
 		E1000001 /* TranscriptCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000001 /* TranscriptCLI.swift */; };
 		E1000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* Models.swift */; };
@@ -51,6 +52,7 @@
 		A2000010 /* xTranscript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = xTranscript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A2000013 /* AudioExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioExtractor.swift; sourceTree = "<group>"; };
 		A2000014 /* XAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XAIClient.swift; sourceTree = "<group>"; };
+		A2000015 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C2000002 /* OutputGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGeneratorTests.swift; sourceTree = "<group>"; };
 		C2000003 /* TranscriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranscriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D2000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -110,6 +112,7 @@
 				A2000014 /* XAIClient.swift */,
 				A200000A /* OutputGenerator.swift */,
 				A200000C /* Assets.xcassets */,
+				A2000015 /* PrivacyInfo.xcprivacy */,
 				A2000003 /* Info.plist */,
 				A2000004 /* Transcript.entitlements */,
 			);
@@ -240,6 +243,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A100000A /* Assets.xcassets in Resources */,
+				A1000013 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -422,7 +426,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.local.transcript;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ericnicolas.xtranscript;
 				PRODUCT_NAME = xTranscript;
 				PRODUCT_MODULE_NAME = Transcript;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -446,7 +450,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.local.transcript;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ericnicolas.xtranscript;
 				PRODUCT_NAME = xTranscript;
 				PRODUCT_MODULE_NAME = Transcript;
 				SWIFT_EMIT_LOC_STRINGS = YES;
