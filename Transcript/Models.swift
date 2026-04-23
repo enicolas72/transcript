@@ -14,6 +14,22 @@ enum FileStatus: Equatable {
         case .error: return "Error"
         }
     }
+
+    /// Hover tooltip shown on the file-row status. Surfaces the full error
+    /// message or the output paths without requiring the user to open the
+    /// log panel.
+    var tooltip: String {
+        switch self {
+        case .waiting: return "Waiting to be processed"
+        case .processing: return "Processing…"
+        case .done(let txtPath, let srtPath):
+            var parts = ["Done"]
+            if let p = txtPath { parts.append("TXT: \(p)") }
+            if let p = srtPath { parts.append("SRT: \(p)") }
+            return parts.joined(separator: "\n")
+        case .error(let message): return message
+        }
+    }
 }
 
 struct FileItem: Identifiable {

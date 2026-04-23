@@ -162,6 +162,7 @@ struct ContentView: View {
                     Text(file.status.label)
                         .font(.caption)
                         .foregroundColor(statusColor(for: file.status))
+                        .help(file.status.tooltip)
                 }
             }
 

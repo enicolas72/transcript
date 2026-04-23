@@ -88,14 +88,23 @@ final class TranscriptionViewModel: ObservableObject {
     }
 
     private func startProcessing(at index: Int) {
-        guard settings.txtEnabled || settings.srtEnabled else {
-            fileQueue[index].status = .error("No output formats enabled")
+        // Pre-check errors: surface them in the log panel *and* the file
+        // row, so the user isn't staring at a bare "Error" badge with no
+        // clue what went wrong.
+        func fail(_ message: String) {
+            fileQueue[index].status = .error(message)
+            logOutput = "Error: \(message)\n"
+            statusText = "Error"
+            progressFraction = nil
             processNextIfNeeded()
+        }
+
+        guard settings.txtEnabled || settings.srtEnabled else {
+            fail("No output formats enabled. Turn on .txt or .srt in the Settings sidebar.")
             return
         }
         guard !settings.apiKey.isEmpty else {
-            fileQueue[index].status = .error("xAI API key is not set (see Settings).")
-            processNextIfNeeded()
+            fail("xAI API key is not set. Paste your key in the Settings sidebar on the left (get one at console.x.ai).")
             return
         }
 
