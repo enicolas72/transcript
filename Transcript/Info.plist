@@ -3,24 +3,29 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Transcript</string>
+    <string>xTranscript</string>
     <key>CFBundleDisplayName</key>
-    <string>Transcript</string>
+    <string>xTranscript</string>
     <key>CFBundleIdentifier</key>
     <string>com.local.transcript</string>
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>Transcript</string>
+    <string>xTranscript</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
+    <!-- Encryption export compliance: the app uses only the system's TLS
+         implementation (HTTPS/WSS to xAI). Declaring no proprietary crypto
+         short-circuits the export-compliance questionnaire on App Store submission. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 </dict>
 </plist>

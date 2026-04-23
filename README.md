@@ -1,4 +1,4 @@
-# Transcript v0.2
+# xTranscript v1.0.0
 
 A native macOS transcription tool — GUI app and command-line — that sends audio to **xAI's Speech-to-Text API** and writes `.txt` / `.srt` files with word-level timestamps and speaker labels.
 
@@ -29,7 +29,7 @@ At the time of writing, xAI bills the STT API at **$0.10 per audio-hour** for ba
 
 ### GUI app
 
-Open `Transcript.xcodeproj` in Xcode, select the **Transcript** scheme, and hit Run. Paste your xAI API key into the Settings sidebar.
+Open `Transcript.xcodeproj` in Xcode, select the **xTranscript** scheme, and hit Run. Paste your xAI API key into the Settings sidebar.
 
 ### Command-line tool
 

@@ -48,7 +48,7 @@
 		A2000008 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		A200000A /* OutputGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGenerator.swift; sourceTree = "<group>"; };
 		A200000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A2000010 /* Transcript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Transcript.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2000010 /* xTranscript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = xTranscript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A2000013 /* AudioExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioExtractor.swift; sourceTree = "<group>"; };
 		A2000014 /* XAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XAIClient.swift; sourceTree = "<group>"; };
 		C2000002 /* OutputGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGeneratorTests.swift; sourceTree = "<group>"; };
@@ -119,7 +119,7 @@
 		A4000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A2000010 /* Transcript.app */,
+				A2000010 /* xTranscript.app */,
 				C2000003 /* TranscriptTests.xctest */,
 				E2000002 /* transcript */,
 			);
@@ -161,7 +161,7 @@
 			packageProductDependencies = (
 			);
 			productName = Transcript;
-			productReference = A2000010 /* Transcript.app */;
+			productReference = A2000010 /* xTranscript.app */;
 			productType = "com.apple.product-type.application";
 		};
 		C5000001 /* TranscriptTests */ = {
@@ -421,9 +421,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.transcript;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = xTranscript;
+				PRODUCT_MODULE_NAME = Transcript;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -444,9 +445,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.local.transcript;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = xTranscript;
+				PRODUCT_MODULE_NAME = Transcript;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -465,7 +467,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Transcript.app/Contents/MacOS/Transcript";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/xTranscript.app/Contents/MacOS/xTranscript";
 			};
 			name = Debug;
 		};
@@ -482,7 +484,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Transcript.app/Contents/MacOS/Transcript";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/xTranscript.app/Contents/MacOS/xTranscript";
 			};
 			name = Release;
 		};

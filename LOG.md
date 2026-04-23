@@ -1,5 +1,25 @@
 # Development Log
 
+## 2026-04-23 — v1.0.0, rename to xTranscript, more unit tests
+
+### What was done
+
+- **Renamed the app to xTranscript.** `PRODUCT_NAME` → `xTranscript`; built bundle is now `xTranscript.app` with `CFBundleName` / `CFBundleDisplayName` / `CFBundleExecutable` all matching. `PRODUCT_MODULE_NAME` is pinned to `Transcript` so `@testable import Transcript` in the test target keeps working without a module rename.
+- **Scheme renamed** `Transcript.xcscheme` → `xTranscript.xcscheme` via `git mv`. `BuildableName` references updated. Test host in `TranscriptTests` retargeted at `xTranscript.app/Contents/MacOS/xTranscript`.
+- **Version bumped to 1.0.0.** `MARKETING_VERSION` in both Debug/Release configs + `CFBundleVersion` / `CFBundleShortVersionString` in `Info.plist`.
+- **App Store pre-reqs in Info.plist:** added `ITSAppUsesNonExemptEncryption = false` (we use system TLS only — short-circuits the export-compliance questionnaire on submission).
+- **Test coverage expanded** (4 → 15). `OutputGeneratorTests.swift` now covers:
+  - `generateTXT` — joins segments with `\n`, empty case.
+  - `generateSRT` — single-cue format, sequential numbering across cues, HH:MM:SS,mmm timestamp formatting, speaker prefix toggle, empty-text skip.
+  - `TranscriptLanguage.xAICode` — `en`, `auto` (nil), `fr`.
+- **What's still untested:** audio extraction (needs fixture files), xAI WebSocket transport (needs URLSession mock). Neither is a great ROI right now.
+
+### Not touched (deliberately)
+
+- `Transcript.xcodeproj` / source folder / `TranscriptCLI` binary name. These are internal structure, not user-visible. The CLI stays `transcript` (conventional, lowercase).
+- Bundle identifier (`com.local.transcript`). Will need a real reverse-DNS ID before App Store submission.
+- App Sandbox is still off. Enabling it is mandatory for Mac App Store and requires `com.apple.security.network.client` + `com.apple.security.files.user-selected.read-write`.
+
 ## 2026-04-22 (latest) — Temporarily disable speaker detection (xAI diarize OOMs)
 
 ### What was done
