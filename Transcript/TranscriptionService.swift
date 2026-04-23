@@ -194,8 +194,10 @@ struct TranscriptionService {
 }
 
 extension TranscriptLanguage {
-    /// Language code to send to xAI. `auto` is expressed as "no hint".
-    var xAICode: String? {
-        self == .auto ? nil : rawValue
+    /// Language code to send to xAI. `.auto` is sent as the literal string
+    /// `auto` — omitting the parameter entirely makes xAI's streaming
+    /// endpoint reject the WebSocket handshake with NSURLError -1011.
+    var xAICode: String {
+        rawValue
     }
 }

@@ -86,8 +86,23 @@ enum XAIClient {
         @Sendable func teardown() { task.cancel(with: .normalClosure, reason: nil) }
         defer { teardown() }
 
-        // Step 1: wait for transcript.created.
-        let created = try await receiveEvent(task)
+        // Step 1: wait for transcript.created. A handshake failure shows
+        // up here as NSURLError -1011 (badServerResponse) with no response
+        // body accessible from URLSessionWebSocketTask. Re-wrap it with
+        // actionable hints so the user isn't staring at
+        // "There was a bad response from the server."
+        let created: Event
+        do {
+            created = try await receiveEvent(task)
+        } catch let error as NSError where error.domain == NSURLErrorDomain && error.code == NSURLErrorBadServerResponse {
+            log("xAI: WebSocket handshake rejected by server (NSURLError -1011).")
+            throw XAIError.protocolError("""
+                xAI rejected the WebSocket handshake. Common causes: invalid API key, \
+                unsupported parameter combination (e.g. missing language), or a server-side \
+                outage. Check your API key in Settings, and try selecting a specific language \
+                instead of Automatic.
+                """)
+        }
         guard created.type == "transcript.created" else {
             throw XAIError.protocolError("Expected transcript.created, got \(created.type)")
         }

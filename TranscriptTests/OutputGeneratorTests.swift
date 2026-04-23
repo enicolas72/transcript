@@ -128,8 +128,10 @@ final class OutputGeneratorTests: XCTestCase {
         XCTAssertEqual(TranscriptLanguage.english.xAICode, "en")
     }
 
-    func testLanguageCodeForAutoIsNil() {
-        XCTAssertNil(TranscriptLanguage.auto.xAICode)
+    func testLanguageCodeForAutoIsExplicit() {
+        // xAI streaming rejects the handshake if `language` is missing, so
+        // Automatic is sent as the literal "auto" string (not nil).
+        XCTAssertEqual(TranscriptLanguage.auto.xAICode, "auto")
     }
 
     func testLanguageCodeForFrench() {
