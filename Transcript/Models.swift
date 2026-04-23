@@ -45,8 +45,10 @@ enum OutputFolder: Equatable {
     case custom(URL)
 }
 
-/// Transcription language. Mapped 1:1 onto xAI's STT language hint (except
-/// `.auto`, which omits the hint and lets the API auto-detect).
+/// Transcription language. Mapped 1:1 onto xAI's STT `language=` query
+/// param. Auto-detection is not in this list — xAI's streaming endpoint
+/// rejects the WebSocket handshake when no language is specified, and
+/// does not accept `language=auto`.
 enum TranscriptLanguage: String, CaseIterable, Identifiable, Equatable {
     case english = "en"
     case french = "fr"
@@ -59,7 +61,6 @@ enum TranscriptLanguage: String, CaseIterable, Identifiable, Equatable {
     case chinese = "zh"
     case japanese = "ja"
     case korean = "ko"
-    case auto = "auto"
 
     var id: String { rawValue }
 
@@ -76,7 +77,6 @@ enum TranscriptLanguage: String, CaseIterable, Identifiable, Equatable {
         case .chinese: return "Chinese"
         case .japanese: return "Japanese"
         case .korean: return "Korean"
-        case .auto: return "Automatic"
         }
     }
 }

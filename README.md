@@ -5,7 +5,7 @@ A native macOS transcription tool — GUI app and command-line — that sends au
 ## Features
 
 - **GUI app + CLI** — drag-and-drop desktop app and `transcript` command-line tool
-- **25 languages** via `grok-stt` (English, French, German, Spanish, Italian, Portuguese, Dutch, Russian, Chinese, Japanese, Korean, and more — plus an `auto` mode)
+- **11 languages** via `grok-stt` (English, French, German, Spanish, Italian, Portuguese, Dutch, Russian, Chinese, Japanese, Korean — xAI's streaming endpoint requires an explicit language, no auto-detection)
 - **Multiple input formats** — mp3, wav, m4a, flac, aac, aiff, mp4, mov (anything AVFoundation can open)
 - **Dual output** — `.txt` transcript and `.srt` subtitles
 - **Speaker detection** — word-level speaker IDs returned by the API in a single call
@@ -56,7 +56,7 @@ transcript interview.wav --no-speakers
 # Both formats
 transcript podcast.m4a --txt --srt
 
-# French (or any other language: de, es, it, pt, nl, ru, zh, ja, ko, auto)
+# French (or any other language: de, es, it, pt, nl, ru, zh, ja, ko)
 transcript entretien.mp3 --language fr
 
 # Pass the API key explicitly

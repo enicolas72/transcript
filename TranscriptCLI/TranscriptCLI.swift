@@ -32,8 +32,8 @@ struct TranscriptCLI: AsyncParsableCommand {
     var srt: Bool = false
 
     @Option(name: .shortAndLong, help: """
-        Language: en, fr, de, es, it, pt, nl, ru, zh, ja, ko, or 'auto' \
-        for automatic detection. Default: en.
+        Language: en, fr, de, es, it, pt, nl, ru, zh, ja, ko. Default: en.
+        (xAI's streaming endpoint requires an explicit language — no auto.)
         """)
     var language: String = "en"
 
