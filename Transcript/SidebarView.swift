@@ -101,7 +101,7 @@ struct SidebarView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
-            SecureField("sk-…", text: $vm.settings.apiKey)
+            SecureField("xai-…", text: $vm.settings.apiKey)
                 .textFieldStyle(.roundedBorder)
                 .disabled(vm.isProcessing)
 
