@@ -1,5 +1,21 @@
 # Development Log
 
+## 2026-04-23 (latest) — Finalize bundle ID + host-free App Store URLs
+
+### What was done
+
+- **Bundle ID finalized** as `net.eric-nicolas.xtranscript` (reverse-DNS of the domain we own, `eric-nicolas.net`). Updated `PRODUCT_BUNDLE_IDENTIFIER` in both build configs. `Info.plist` already referenced `$(PRODUCT_BUNDLE_IDENTIFIER)` so no change there. Fixed the stale `defaults delete` command in `docs/privacy.md`.
+- **Hosting-free App Store Connect setup.** We don't want to run a marketing site, so instead:
+  - Privacy policy URL → `https://github.com/enicolas72/transcript/blob/main/docs/privacy.md` (GitHub renders markdown natively; Apple accepts GitHub URLs).
+  - Support URL → `https://github.com/enicolas72/transcript/issues`.
+  No DNS records, no GitHub Pages, no `CNAME` file required.
+
+### Verified
+
+- pbxproj still lints clean (`plutil -lint`).
+- `xcodebuild -showBuildSettings` confirms `PRODUCT_BUNDLE_IDENTIFIER = net.eric-nicolas.xtranscript`.
+- Debug build succeeds; 15 unit tests still pass (no code paths touched, only identifiers and docs).
+
 ## 2026-04-23 (later) — Mac App Store prep: sandbox, privacy manifest, bookmarks
 
 ### What was done

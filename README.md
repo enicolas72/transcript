@@ -108,13 +108,15 @@ The app is configured for Mac App Store submission:
 - **Privacy Manifest** at `Transcript/PrivacyInfo.xcprivacy` declares
   audio data collection with purpose = app functionality, and required-reason
   API use for `UserDefaults` and file metadata reads.
-- **Bundle ID** is `com.ericnicolas.xtranscript` — **change this** to your
-  own reverse-DNS (`com.yourdomain.xtranscript`) in `project.pbxproj`
-  before submission.
+- **Bundle ID** is `net.eric-nicolas.xtranscript` (reverse-DNS of
+  `eric-nicolas.net`).
 - **Encryption export compliance**: `ITSAppUsesNonExemptEncryption = false`
   in `Info.plist` (system TLS only, no proprietary crypto).
-- **Privacy policy** draft at `docs/privacy.md` — host it (e.g. GitHub
-  Pages) and reference the public URL in App Store Connect.
+- **Privacy policy** lives at `docs/privacy.md` and is served directly by
+  GitHub — no separate web hosting needed. Use these URLs in App Store
+  Connect:
+  - Privacy policy URL: https://github.com/enicolas72/transcript/blob/main/docs/privacy.md
+  - Support URL: https://github.com/enicolas72/transcript/issues
 
 To archive for submission: Xcode → Product → Archive → Distribute App →
 App Store Connect. Requires an Apple Developer Program membership and

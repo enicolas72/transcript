@@ -64,7 +64,7 @@ xTranscript.
 - To delete every trace of xTranscript from your machine: drag the
   app to the Trash and, if you want, remove the app's `UserDefaults`
   domain with
-  `defaults delete com.ericnicolas.xtranscript`.
+  `defaults delete net.eric-nicolas.xtranscript`.
 
 ## Contact
 
