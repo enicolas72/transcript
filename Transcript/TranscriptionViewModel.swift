@@ -16,12 +16,18 @@ final class TranscriptionViewModel: ObservableObject {
 
     private var currentTask: Task<Void, Never>?
 
-    /// Folders for which the user has already granted write access this
-    /// session, mapped from the destination we asked about to the actual
-    /// folder URL the user selected (typically the same). Holding the URL
-    /// keeps the sandbox extension alive — drop the entry and the
-    /// extension can be revoked.
+    /// Folders for which the user has granted write access, mapped from
+    /// the destination we asked about to the URL the user selected
+    /// (typically the same). Holding the URL keeps the sandbox extension
+    /// alive. Persisted as security-scoped bookmarks under
+    /// `folderAccessBookmarks` in UserDefaults — re-resolved at init so
+    /// grants survive app quits.
     private var folderAccessGrants: [URL: URL] = [:]
+    private static let folderAccessBookmarksKey = "folderAccessBookmarks"
+
+    init() {
+        loadFolderAccessBookmarks()
+    }
 
     var isProcessing: Bool {
         fileQueue.contains { $0.status == .processing }
@@ -231,8 +237,8 @@ final class TranscriptionViewModel: ObservableObject {
     /// Sandbox, NSOpenPanel pre-pointed at a directory IS the system's
     /// permission gateway — there is no iOS-style yes/no popup for
     /// arbitrary folders. The user clicks Allow and the sandbox extends
-    /// for that folder for the rest of the session. We cache the granted
-    /// URL so a second file dropped from the same folder doesn't re-prompt.
+    /// for that folder. We cache the granted URL in memory and persist
+    /// a security-scoped bookmark so the grant survives app restarts.
     func requestWriteAccess(for folder: URL) async -> Bool {
         if folderAccessGrants[folder] != nil { return true }
 
@@ -245,11 +251,54 @@ final class TranscriptionViewModel: ObservableObject {
         panel.prompt = "Allow"
         panel.message = """
             xTranscript needs your permission to save the .txt / .srt outputs in
-            \"\(folder.lastPathComponent)\". Click Allow to grant access for this session.
+            \"\(folder.lastPathComponent)\". Click Allow to grant access — \
+            this is remembered across launches.
             """
 
         guard panel.runModal() == .OK, let url = panel.url else { return false }
         folderAccessGrants[folder] = url
+        persistGrant(folder: folder, url: url)
         return true
+    }
+
+    // MARK: - Bookmark persistence
+
+    private func loadFolderAccessBookmarks() {
+        guard let raw = UserDefaults.standard.dictionary(forKey: Self.folderAccessBookmarksKey) as? [String: Data] else {
+            return
+        }
+        var loaded: [URL: URL] = [:]
+        var stillValid: [String: Data] = [:]
+        for (path, bookmarkData) in raw {
+            var isStale = false
+            guard let url = try? URL(
+                resolvingBookmarkData: bookmarkData,
+                options: .withSecurityScope,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ), !isStale else {
+                continue  // drop stale / unresolvable bookmarks
+            }
+            // Bookmark-resolved URLs require startAccessing to extend the
+            // sandbox; URLs returned directly from NSOpenPanel don't.
+            guard url.startAccessingSecurityScopedResource() else { continue }
+            loaded[URL(fileURLWithPath: path)] = url
+            stillValid[path] = bookmarkData
+        }
+        folderAccessGrants = loaded
+        if stillValid.count != raw.count {
+            UserDefaults.standard.set(stillValid, forKey: Self.folderAccessBookmarksKey)
+        }
+    }
+
+    private func persistGrant(folder: URL, url: URL) {
+        guard let bookmark = try? url.bookmarkData(
+            options: .withSecurityScope,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        ) else { return }
+        var dict = (UserDefaults.standard.dictionary(forKey: Self.folderAccessBookmarksKey) as? [String: Data]) ?? [:]
+        dict[folder.path] = bookmark
+        UserDefaults.standard.set(dict, forKey: Self.folderAccessBookmarksKey)
     }
 }
