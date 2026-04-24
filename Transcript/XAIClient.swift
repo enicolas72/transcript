@@ -86,21 +86,20 @@ enum XAIClient {
         @Sendable func teardown() { task.cancel(with: .normalClosure, reason: nil) }
         defer { teardown() }
 
-        // Step 1: wait for transcript.created. A handshake failure shows
-        // up here as NSURLError -1011 (badServerResponse) with no response
-        // body accessible from URLSessionWebSocketTask. Re-wrap it with
-        // actionable hints so the user isn't staring at
-        // "There was a bad response from the server."
+        // Step 1: wait for transcript.created. On a handshake failure the
+        // WebSocket task itself holds the underlying HTTPURLResponse —
+        // pull the status code / key headers out so the log tells the
+        // user whether it's 401 (bad key), 400 (malformed request), 429
+        // (quota), or 5xx (server outage).
         let created: Event
         do {
             created = try await receiveEvent(task)
         } catch let error as NSError where error.domain == NSURLErrorDomain && error.code == NSURLErrorBadServerResponse {
-            log("xAI: WebSocket handshake rejected by server (NSURLError -1011).")
-            throw XAIError.protocolError("""
-                xAI rejected the WebSocket handshake. Common causes: invalid API key, \
-                unsupported parameter combination (e.g. missing language), or a server-side \
-                outage. Check your API key in Settings, and try selecting a specific language \
-                instead of Automatic.
+            let (statusCode, hint, details) = diagnoseHandshakeFailure(task: task)
+            log("xAI: WebSocket handshake rejected — \(details)")
+            throw XAIError.protocolError(hint ?? """
+                xAI rejected the WebSocket handshake (HTTP \(statusCode.map(String.init) ?? "?")). \
+                Check your API key in Settings and the language selection, then retry.
                 """)
         }
         guard created.type == "transcript.created" else {
@@ -149,6 +148,44 @@ enum XAIClient {
         }
 
         return final
+    }
+
+    // MARK: - Handshake diagnostics
+
+    /// Inspect a failed `URLSessionWebSocketTask` and produce (a) the HTTP
+    /// status code if any, (b) an actionable hint specific to common
+    /// rejection causes, and (c) a one-line log summary.
+    private static func diagnoseHandshakeFailure(
+        task: URLSessionWebSocketTask
+    ) -> (statusCode: Int?, hint: String?, details: String) {
+        guard let http = task.response as? HTTPURLResponse else {
+            return (nil, nil, "NSURLError -1011 (no HTTP response captured — connection didn't complete)")
+        }
+        let status = http.statusCode
+        let reqId = http.value(forHTTPHeaderField: "x-request-id")
+            ?? http.value(forHTTPHeaderField: "X-Request-Id")
+            ?? http.value(forHTTPHeaderField: "cf-ray")
+        var details = "HTTP \(status)"
+        if let reqId { details += ", request=\(reqId)" }
+
+        let hint: String?
+        switch status {
+        case 400:
+            hint = "xAI rejected the request (HTTP 400). Usually an unsupported parameter combination — try selecting a different language."
+        case 401:
+            hint = "xAI API key is invalid or expired (HTTP 401). Paste a fresh key in Settings."
+        case 403:
+            hint = "xAI refused the request (HTTP 403). The API key may not be authorised for Speech-to-Text, or your account is over its limits."
+        case 404:
+            hint = "xAI returned HTTP 404 for wss://api.x.ai/v1/stt. The endpoint may have moved."
+        case 429:
+            hint = "xAI rate limit or quota exceeded (HTTP 429). Wait and try again, or check your xAI usage dashboard."
+        case 500...599:
+            hint = "xAI server-side error (HTTP \(status)). Try again in a minute; this is on their side."
+        default:
+            hint = nil
+        }
+        return (status, hint, details)
     }
 
     // MARK: - URL construction

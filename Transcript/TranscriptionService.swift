@@ -39,7 +39,7 @@ struct TranscriptionService {
 
         onProgress(ProgressUpdate(kind: .status("Streaming to xAI...")))
         onProgress(ProgressUpdate(kind: .progress(0.10)))
-        log("Calling xAI Speech-to-Text (\(language.displayName), diarize=\(speakerDetection))…")
+        log("Calling xAI Speech-to-Text (\(language.displayName))…")
 
         let response = try await XAIClient.streamingTranscribe(
             reader: reader,
