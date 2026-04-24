@@ -179,6 +179,11 @@ struct LabeledSegment {
 enum TranscriptionError: LocalizedError {
     case noOutput
     case emptyTranscription
+    /// macOS App Sandbox refused a write next to a dropped file. Files
+    /// dropped on the app grant only read access to the file itself; the
+    /// fix is to pick a custom output folder in Settings, which we receive
+    /// via NSOpenPanel and persist as a security-scoped bookmark.
+    case outputPermissionDenied(folder: String)
 
     var errorDescription: String? {
         switch self {
@@ -186,6 +191,12 @@ enum TranscriptionError: LocalizedError {
             return "No audio track found. Check that the input is a valid audio/video file."
         case .emptyTranscription:
             return "Transcription produced no words. The file may contain no speech."
+        case .outputPermissionDenied(let folder):
+            return """
+                macOS sandbox blocked writing to \"\(folder)\". Files dropped onto the app \
+                don't grant write access to their parent folder. \
+                Pick a Custom output folder in the Settings sidebar (left), then retry.
+                """
         }
     }
 }

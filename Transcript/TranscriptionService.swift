@@ -6,6 +6,14 @@ import Foundation
 /// `.txt` / `.srt`.
 struct TranscriptionService {
 
+    /// Callback the service invokes when a write to the destination folder
+    /// is rejected by the App Sandbox. The host (the GUI ViewModel) is
+    /// expected to surface an `NSOpenPanel` pre-pointed at `folder`; the
+    /// returned `Bool` indicates whether the user granted access. After
+    /// `true`, the service retries the write — the NSOpenPanel grant
+    /// extends the sandbox for that folder for the rest of the session.
+    typealias WriteAccessRequest = @Sendable (_ folder: URL) async -> Bool
+
     func transcribe(
         fileURL: URL,
         outputDir: URL?,
@@ -14,6 +22,7 @@ struct TranscriptionService {
         speakerDetection: Bool,
         language: TranscriptLanguage,
         apiKey: String,
+        requestWriteAccess: WriteAccessRequest? = nil,
         onProgress: @escaping @Sendable (ProgressUpdate) -> Void
     ) async throws -> TranscriptionResult {
 
@@ -90,7 +99,7 @@ struct TranscriptionService {
             let content = speakerDetection
                 ? OutputGenerator.generateTXTWithSpeakers(segments)
                 : OutputGenerator.generateTXT(segments)
-            try content.write(toFile: path, atomically: true, encoding: .utf8)
+            try await Self.writeOutput(content, to: path, destDir: destDir, requestWriteAccess: requestWriteAccess)
             txtPath = path
             log("Wrote \(path)")
         }
@@ -98,13 +107,43 @@ struct TranscriptionService {
         if srtEnabled {
             let path = destDir.appendingPathComponent("\(base).srt").path
             let content = OutputGenerator.generateSRT(segments, withSpeakers: speakerDetection)
-            try content.write(toFile: path, atomically: true, encoding: .utf8)
+            try await Self.writeOutput(content, to: path, destDir: destDir, requestWriteAccess: requestWriteAccess)
             srtPath = path
             log("Wrote \(path)")
         }
 
         onProgress(ProgressUpdate(kind: .progress(1.0)))
         return TranscriptionResult(txtPath: txtPath, srtPath: srtPath)
+    }
+
+    // MARK: - Sandbox-aware writes
+
+    /// Wrap `String.write(toFile:)` so that the sandbox denial we get
+    /// when writing next to a dropped file becomes:
+    /// 1. an attempt to obtain write access via the host's `requestWriteAccess`
+    ///    (typically an `NSOpenPanel` pre-pointed at the folder), then
+    /// 2. a retry of the write inside the freshly-extended sandbox scope, or
+    /// 3. our user-friendly `outputPermissionDenied` if the user declined.
+    private static func writeOutput(
+        _ content: String,
+        to path: String,
+        destDir: URL,
+        requestWriteAccess: WriteAccessRequest?
+    ) async throws {
+        do {
+            try content.write(toFile: path, atomically: true, encoding: .utf8)
+            return
+        } catch let error as NSError where error.domain == NSCocoaErrorDomain
+                                        && error.code == NSFileWriteNoPermissionError {
+            // Sandbox denied the write. Ask the host UI for permission.
+            if let request = requestWriteAccess, await request(destDir) {
+                // NSOpenPanel grant extends the sandbox for this folder for
+                // the lifetime of the app, so a plain retry should now work.
+                try content.write(toFile: path, atomically: true, encoding: .utf8)
+                return
+            }
+            throw TranscriptionError.outputPermissionDenied(folder: destDir.path)
+        }
     }
 
     // MARK: - Segment construction

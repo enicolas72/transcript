@@ -16,6 +16,13 @@ final class TranscriptionViewModel: ObservableObject {
 
     private var currentTask: Task<Void, Never>?
 
+    /// Folders for which the user has already granted write access this
+    /// session, mapped from the destination we asked about to the actual
+    /// folder URL the user selected (typically the same). Holding the URL
+    /// keeps the sandbox extension alive — drop the entry and the
+    /// extension can be revoked.
+    private var folderAccessGrants: [URL: URL] = [:]
+
     var isProcessing: Bool {
         fileQueue.contains { $0.status == .processing }
     }
@@ -170,7 +177,11 @@ final class TranscriptionViewModel: ObservableObject {
                     srtEnabled: capturedSettings.srtEnabled,
                     speakerDetection: false,
                     language: capturedSettings.language,
-                    apiKey: capturedSettings.apiKey
+                    apiKey: capturedSettings.apiKey,
+                    requestWriteAccess: { [weak self] folder in
+                        guard let self else { return false }
+                        return await self.requestWriteAccess(for: folder)
+                    }
                 ) { [weak self] update in
                     Task { @MainActor in
                         switch update.kind {
@@ -214,5 +225,31 @@ final class TranscriptionViewModel: ObservableObject {
         if panel.runModal() == .OK, let url = panel.url {
             settings.outputFolder = .custom(url)
         }
+    }
+
+    /// Pop the system's "permission grant" UI for `folder`. Under App
+    /// Sandbox, NSOpenPanel pre-pointed at a directory IS the system's
+    /// permission gateway — there is no iOS-style yes/no popup for
+    /// arbitrary folders. The user clicks Allow and the sandbox extends
+    /// for that folder for the rest of the session. We cache the granted
+    /// URL so a second file dropped from the same folder doesn't re-prompt.
+    func requestWriteAccess(for folder: URL) async -> Bool {
+        if folderAccessGrants[folder] != nil { return true }
+
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = folder
+        panel.title = "Allow folder access"
+        panel.prompt = "Allow"
+        panel.message = """
+            xTranscript needs your permission to save the .txt / .srt outputs in
+            \"\(folder.lastPathComponent)\". Click Allow to grant access for this session.
+            """
+
+        guard panel.runModal() == .OK, let url = panel.url else { return false }
+        folderAccessGrants[folder] = url
+        return true
     }
 }
