@@ -1,18 +1,25 @@
 # xTranscript v1.0.0
 
-A native macOS transcription tool — GUI app and command-line — that sends audio to **xAI's Speech-to-Text API** and writes `.txt` / `.srt` files with word-level timestamps and speaker labels.
+A native macOS transcription tool that sends audio to **xAI's Speech-to-Text API** and writes `.txt` / `.srt` files with word-level timestamps.
 
 ## Features
 
-- **GUI app + CLI** — drag-and-drop desktop app and `transcript` command-line tool
-- **11 languages** via `grok-stt` (English, French, German, Spanish, Italian, Portuguese, Dutch, Russian, Chinese, Japanese, Korean — xAI's streaming endpoint requires an explicit language, no auto-detection)
+- **Drag-and-drop GUI** — multi-file queue with per-file status, retry, overwrite protection
+- **11 languages** via `grok-stt` (English, French, German, Spanish, Italian, Portuguese, Dutch, Russian, Chinese, Japanese, Korean — xAI's streaming endpoint requires an explicit language)
 - **Universal input format support** — every file is decoded by the embedded LGPL-only FFmpeg build (MP3, M4A, MP4, MOV, WAV, FLAC, AAC, AIFF, CAF, ALAC, MKV, WebM, OGG/Opus, AVI, WMV, WMA, …)
 - **Dual output** — `.txt` transcript and `.srt` subtitles
-- **Speaker detection** — word-level speaker IDs returned by the API in a single call
-- **Multi-file queue** — process multiple files sequentially, with per-file status tracking
-- **Overwrite protection** — asks before overwriting existing output files (GUI)
 - **Real-time progress** — progress bar and live log during transcription
-- **Persistent settings** — API key, output folder, formats, language, and speaker detection are saved across launches (GUI)
+- **Persistent settings** — API key, output folder, formats, language saved across launches
+- **Free + Pro tiers** — see Pricing below
+
+## Pricing
+
+| Tier | What you get | Price |
+|-|-|-|
+| **Free** | Drag-and-drop transcription, all formats and languages, capped at **5 minutes per file** | — |
+| **Pro** | Removes the 5-minute cap. Cancel anytime. | **$9.99 / year** |
+
+Pro is an auto-renewable yearly subscription handled by Apple's App Store. xAI's own per-hour transcription cost is billed separately by xAI on your own API key — xTranscript Pro does **not** include xAI usage.
 
 ## Requirements
 
@@ -21,49 +28,9 @@ A native macOS transcription tool — GUI app and command-line — that sends au
 - An xAI API key (get one at console.x.ai)
 - Internet connection (every file is uploaded to xAI)
 
-## Pricing
-
-At the time of writing, xAI bills the STT API at **$0.10 per audio-hour** for batch transcription. See xAI's pricing page for the current rate.
-
 ## Build & Run
 
-### GUI app
-
-Open `Transcript.xcodeproj` in Xcode, select the **xTranscript** scheme, and hit Run. Paste your xAI API key into the Settings sidebar.
-
-### Command-line tool
-
-Select the **TranscriptCLI** scheme in Xcode and build, or:
-
-```bash
-xcodebuild -scheme TranscriptCLI -configuration Release build
-```
-
-Usage:
-
-```bash
-# Transcribe with speaker detection (default: .txt output, English).
-# API key is read from $XAI_API_KEY (or --api-key, or the GUI-saved key).
-export XAI_API_KEY=xai-...
-transcript recording.mp4
-
-# Multiple files, custom output dir, with SRT subtitles
-transcript episode1.mp3 episode2.mp3 --output ~/transcripts --srt
-
-# Disable speaker detection
-transcript interview.wav --no-speakers
-
-# Both formats
-transcript podcast.m4a --txt --srt
-
-# French (or any other language: de, es, it, pt, nl, ru, zh, ja, ko)
-transcript entretien.mp3 --language fr
-
-# Pass the API key explicitly
-transcript call.mp3 --api-key xai-abc123
-```
-
-Status messages go to stderr, output file paths go to stdout — so you can pipe: `transcript file.mp4 | xargs open`
+Open `Transcript.xcodeproj` in Xcode, select the **xTranscript** scheme, and hit Run. Paste your xAI API key into the Settings sidebar. The bundled `Transcript/Configuration/Products.storekit` file lets you test the Pro upgrade flow locally without a real Apple ID.
 
 ## Architecture
 
@@ -75,10 +42,13 @@ Transcript/                         # GUI app (SwiftUI)
 ├── ContentView.swift               # Three-column layout (sidebar, log, file queue)
 ├── SidebarView.swift               # Settings panel (output, language, formats, API key)
 ├── TranscriptionService.swift      # Orchestrator: open PCM stream → pipe through WebSocket → group → write (shared)
-├── AudioExtractor.swift            # Thin entry point: opens an FFmpegPCMReader (shared)
-├── FFmpegPCMReader.swift           # LGPL FFmpeg decoder for every supported format (shared)
-├── XAIClient.swift                 # Streaming client for wss://api.x.ai/v1/stt (shared)
-└── OutputGenerator.swift           # TXT and SRT generation (shared)
+├── AudioExtractor.swift            # Thin entry point: opens an FFmpegPCMReader
+├── FFmpegPCMReader.swift           # LGPL FFmpeg decoder for every supported format
+├── XAIClient.swift                 # Streaming client for wss://api.x.ai/v1/stt
+├── OutputGenerator.swift           # TXT and SRT generation
+├── SubscriptionManager.swift       # StoreKit 2: load product, purchase, restore
+├── UpgradeView.swift               # Modal sheet pitching Pro + running the purchase flow
+└── Configuration/Products.storekit # Local StoreKit testing config
 
 Vendor/
 └── FFmpeg.xcframework              # 7.6 MB universal static lib — built by scripts/build-ffmpeg.sh

@@ -30,6 +30,18 @@ enum FileStatus: Equatable {
         case .error(let message): return message
         }
     }
+
+    /// True when this row should show an "Upgrade to Pro" affordance —
+    /// i.e. the error is a Free-tier duration cap. Detected by substring
+    /// match against the localized `TranscriptionError.fileExceedsFreeLimit`
+    /// message; that error is the only producer of the phrase
+    /// "Upgrade to Pro for unlimited", so keep the two in sync.
+    var suggestsUpgrade: Bool {
+        if case .error(let message) = self {
+            return message.contains("Upgrade to Pro for unlimited")
+        }
+        return false
+    }
 }
 
 struct FileItem: Identifiable {
@@ -187,6 +199,10 @@ enum TranscriptionError: LocalizedError {
     /// fix is to pick a custom output folder in Settings, which we receive
     /// via NSOpenPanel and persist as a security-scoped bookmark.
     case outputPermissionDenied(folder: String)
+    /// The user is on the Free tier and dropped a file longer than the
+    /// `freeLimit`-second cap. The UI surfaces an Upgrade-to-Pro button
+    /// alongside this error.
+    case fileExceedsFreeLimit(durationSec: Double, freeLimitSec: Double)
 
     var errorDescription: String? {
         switch self {
@@ -201,6 +217,14 @@ enum TranscriptionError: LocalizedError {
                 macOS sandbox blocked writing to \"\(folder)\". Files dropped onto the app \
                 don't grant write access to their parent folder. \
                 Pick a Custom output folder in the Settings sidebar (left), then retry.
+                """
+        case .fileExceedsFreeLimit(let durationSec, let freeLimitSec):
+            let dMin = Int(durationSec) / 60
+            let dSec = Int(durationSec) % 60
+            let lMin = Int(freeLimitSec / 60)
+            return """
+                This file is \(dMin) min \(dSec) s. xTranscript Free supports up to \(lMin) min \
+                per file. Upgrade to Pro for unlimited transcription.
                 """
         }
     }

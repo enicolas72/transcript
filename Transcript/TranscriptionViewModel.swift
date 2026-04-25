@@ -28,7 +28,14 @@ final class TranscriptionViewModel: ObservableObject {
     private var folderAccessGrants: [URL: URL] = [:]
     private static let folderAccessBookmarksKey = "folderAccessBookmarks"
 
-    init() {
+    /// Free-tier per-file duration cap. 5 minutes.
+    static let freeLimitSeconds: Double = 5 * 60
+
+    /// Owned by `ContentView` and read here for the 5-minute Free gate.
+    private let subscription: SubscriptionManager
+
+    init(subscription: SubscriptionManager) {
+        self.subscription = subscription
         loadFolderAccessBookmarks()
     }
 
@@ -172,6 +179,10 @@ final class TranscriptionViewModel: ObservableObject {
         }
 
         let capturedSettings = settings
+        // Capture the Pro state at the moment the task starts. If the user
+        // upgrades mid-queue, queued files retake the gate via the retry
+        // button (the next click reads `isPro` again).
+        let capturedMaxDuration: Double? = subscription.isPro ? nil : Self.freeLimitSeconds
 
         currentTask = Task {
             do {
@@ -187,6 +198,7 @@ final class TranscriptionViewModel: ObservableObject {
                     speakerDetection: false,
                     language: capturedSettings.language,
                     apiKey: capturedSettings.apiKey,
+                    maxDurationSeconds: capturedMaxDuration,
                     requestWriteAccess: { [weak self] folder in
                         guard let self else { return false }
                         return await self.requestWriteAccess(for: folder)

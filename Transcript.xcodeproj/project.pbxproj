@@ -21,21 +21,14 @@
 		A1000014 /* FFmpegPCMReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000016 /* FFmpegPCMReader.swift */; };
 		A1000015 /* FFmpeg.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000017 /* FFmpeg.xcframework */; };
 		A1000016 /* LICENSES.txt in Resources */ = {isa = PBXBuildFile; fileRef = A2000018 /* LICENSES.txt */; };
+		A1000017 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000019 /* SubscriptionManager.swift */; };
+		A1000018 /* UpgradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200001A /* UpgradeView.swift */; };
 		C1000002 /* OutputGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000002 /* OutputGeneratorTests.swift */; };
 		C1000005 /* FFmpegPCMReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000006 /* FFmpegPCMReaderTests.swift */; };
 		C1000006 /* sine.mkv in Resources */ = {isa = PBXBuildFile; fileRef = C2000007 /* sine.mkv */; };
 		C1000007 /* sine.ogg in Resources */ = {isa = PBXBuildFile; fileRef = C2000008 /* sine.ogg */; };
 		C1000008 /* sine.webm in Resources */ = {isa = PBXBuildFile; fileRef = C2000009 /* sine.webm */; };
 		C1000009 /* sine.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C200000A /* sine.mp3 */; };
-		E1000001 /* TranscriptCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000001 /* TranscriptCLI.swift */; };
-		E1000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* Models.swift */; };
-		E1000003 /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* TranscriptionService.swift */; };
-		E1000007 /* OutputGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000A /* OutputGenerator.swift */; };
-		E1000009 /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = AB000003 /* ArgumentParser */; };
-		E1000010 /* AudioExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013 /* AudioExtractor.swift */; };
-		E1000011 /* XAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014 /* XAIClient.swift */; };
-		E1000012 /* FFmpegPCMReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000016 /* FFmpegPCMReader.swift */; };
-		E1000013 /* FFmpeg.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000017 /* FFmpeg.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +59,9 @@
 		A2000016 /* FFmpegPCMReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegPCMReader.swift; sourceTree = "<group>"; };
 		A2000017 /* FFmpeg.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = FFmpeg.xcframework; path = Vendor/FFmpeg.xcframework; sourceTree = "<group>"; };
 		A2000018 /* LICENSES.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/LICENSES.txt; sourceTree = "<group>"; };
+		A2000019 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		A200001A /* UpgradeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpgradeView.swift; sourceTree = "<group>"; };
+		A200001B /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration/Products.storekit; sourceTree = "<group>"; };
 		C2000002 /* OutputGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGeneratorTests.swift; sourceTree = "<group>"; };
 		C2000003 /* TranscriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranscriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C2000006 /* FFmpegPCMReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegPCMReaderTests.swift; sourceTree = "<group>"; };
@@ -75,8 +71,6 @@
 		C200000A /* sine.mp3 */ = {isa = PBXFileReference; lastKnownFileType = file; path = sine.mp3; sourceTree = "<group>"; };
 		D2000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		D2000002 /* THOUGHTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THOUGHTS.md; sourceTree = "<group>"; };
-		E2000001 /* TranscriptCLI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCLI.swift; sourceTree = "<group>"; };
-		E2000002 /* transcript */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = transcript; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,15 +89,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		E3000001 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E1000009 /* ArgumentParser in Frameworks */,
-				E1000013 /* FFmpeg.xcframework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -113,7 +98,6 @@
 				D2000001 /* README.md */,
 				D2000002 /* THOUGHTS.md */,
 				A4000002 /* Transcript */,
-				E4000001 /* TranscriptCLI */,
 				C4000001 /* TranscriptTests */,
 				A4000004 /* Vendor */,
 				A4000003 /* Products */,
@@ -136,6 +120,9 @@
 				A2000006 /* TranscriptionViewModel.swift */,
 				A2000007 /* ContentView.swift */,
 				A2000008 /* SidebarView.swift */,
+				A2000019 /* SubscriptionManager.swift */,
+				A200001A /* UpgradeView.swift */,
+				A200001B /* Products.storekit */,
 				A2000002 /* TranscriptionService.swift */,
 				A2000013 /* AudioExtractor.swift */,
 				A2000016 /* FFmpegPCMReader.swift */,
@@ -155,7 +142,6 @@
 			children = (
 				A2000010 /* xTranscript.app */,
 				C2000003 /* TranscriptTests.xctest */,
-				E2000002 /* transcript */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -179,14 +165,6 @@
 				C2000009 /* sine.webm */,
 			);
 			path = Fixtures;
-			sourceTree = "<group>";
-		};
-		E4000001 /* TranscriptCLI */ = {
-			isa = PBXGroup;
-			children = (
-				E2000001 /* TranscriptCLI.swift */,
-			);
-			path = TranscriptCLI;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -229,25 +207,6 @@
 			productReference = C2000003 /* TranscriptTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		E5000001 /* transcript */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = E7000001 /* Build configuration list for PBXNativeTarget "transcript" */;
-			buildPhases = (
-				E6000001 /* Sources */,
-				E3000001 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = transcript;
-			packageProductDependencies = (
-				AB000003 /* ArgumentParser */,
-			);
-			productName = transcript;
-			productReference = E2000002 /* transcript */;
-			productType = "com.apple.product-type.tool";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -268,7 +227,6 @@
 			);
 			mainGroup = A4000001;
 			packageReferences = (
-				AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
 			);
 			productRefGroup = A4000003 /* Products */;
 			projectDirPath = "";
@@ -276,7 +234,6 @@
 			targets = (
 				A5000001 /* Transcript */,
 				C5000001 /* TranscriptTests */,
-				E5000001 /* transcript */,
 			);
 		};
 /* End PBXProject section */
@@ -315,6 +272,8 @@
 				A1000004 /* TranscriptionViewModel.swift in Sources */,
 				A1000005 /* ContentView.swift in Sources */,
 				A1000006 /* SidebarView.swift in Sources */,
+				A1000017 /* SubscriptionManager.swift in Sources */,
+				A1000018 /* UpgradeView.swift in Sources */,
 				A1000002 /* TranscriptionService.swift in Sources */,
 				A1000008 /* OutputGenerator.swift in Sources */,
 				A1000011 /* AudioExtractor.swift in Sources */,
@@ -329,20 +288,6 @@
 			files = (
 				C1000002 /* OutputGeneratorTests.swift in Sources */,
 				C1000005 /* FFmpegPCMReaderTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		E6000001 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				E1000001 /* TranscriptCLI.swift in Sources */,
-				E1000002 /* Models.swift in Sources */,
-				E1000003 /* TranscriptionService.swift in Sources */,
-				E1000007 /* OutputGenerator.swift in Sources */,
-				E1000010 /* AudioExtractor.swift in Sources */,
-				E1000012 /* FFmpegPCMReader.swift in Sources */,
-				E1000011 /* XAIClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -544,28 +489,6 @@
 			};
 			name = Release;
 		};
-		E9000001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PRODUCT_MODULE_NAME = TranscriptCLI;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		E9000002 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				DEAD_CODE_STRIPPING = YES;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PRODUCT_MODULE_NAME = TranscriptCLI;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -596,35 +519,8 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E7000001 /* Build configuration list for PBXNativeTarget "transcript" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E9000001 /* Debug */,
-				E9000002 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/swift-argument-parser.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.7.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AB000003 /* ArgumentParser */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AA000002 /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
-			productName = ArgumentParser;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A8000001 /* Project object */;
 }

@@ -40,6 +40,17 @@ anyone else.
 - We do not receive or see your audio, your transcripts, or your API
   key. Everything flows directly between your Mac and xAI.
 
+## Subscriptions
+
+xTranscript offers an optional yearly **Pro** subscription that removes
+the 5-minute-per-file limit on the Free tier. The subscription is
+handled entirely by **Apple's App Store** through StoreKit. We don't
+see your payment details, your Apple ID, or your transaction history
+beyond a yes/no entitlement that StoreKit reports back to the app.
+
+Apple's handling of subscription data is governed by their privacy
+policy: https://www.apple.com/legal/privacy/.
+
 ## Third parties
 
 Exactly one: **xAI**. When you use xTranscript, the audio track of

@@ -1,5 +1,45 @@
 # Development Log
 
+## 2026-04-25 (latest) — Freemium ($9.99/yr Pro) + drop the CLI
+
+### What was done
+
+- **Freemium model.** Free tier capped at 5 minutes of audio per file. **xTranscript Pro** = auto-renewable yearly subscription at **$9.99 / year** (Apple price tier 9), no introductory free trial — the 5-minute Free experience is the trial.
+- **`SubscriptionManager`** (new, `Transcript/SubscriptionManager.swift`): `@MainActor ObservableObject` over StoreKit 2. `Transaction.currentEntitlements` on init resolves the `isPro` state; `Transaction.updates` listener keeps it live across renewals/refunds/family-sharing changes. Verification is StoreKit 2's built-in JWS — no receipt-validation server.
+- **5-minute gate.** `TranscriptionService.transcribe(maxDurationSeconds:)` opens the reader, computes duration from `reader.totalBytes / AudioExtractor.bytesPerSecond` (accurate for every container — FFmpeg parses the headers itself), and throws `TranscriptionError.fileExceedsFreeLimit(durationSec:freeLimitSec:)` when the user is on Free and over the cap. The ViewModel passes `nil` (no cap) when `subscription.isPro`, otherwise `300`.
+- **Sidebar Subscription section.** Free state shows "Free — 5 min limit per file" + an Upgrade button (with live `displayPrice` once StoreKit returns it) + a Restore Purchases link. Pro state shows a green "✓ xTranscript Pro" badge + a "Manage subscription…" link to `itms-apps://apps.apple.com/account/subscriptions`.
+- **`UpgradeView`** (new, `Transcript/UpgradeView.swift`): modal sheet with a three-bullet pitch, the live price, Subscribe + Restore actions, and the Apple-mandated subscription footer (auto-renewal disclosure + Privacy Policy / EULA links — Apple's standard EULA URL).
+- **File-row "Upgrade" button.** When a row's status is `.error` and the message contains the free-limit phrase, a sparkles button appears next to Retry — clicking it opens the same upgrade sheet from `ContentView`.
+- **`Products.storekit`** (new, `Transcript/Configuration/Products.storekit`): local StoreKit configuration file describing the same yearly product. Wired into the scheme's `LaunchAction.storeKitConfigurationFileReference` so we can test the purchase + restore flow without an App Store Connect record.
+
+### CLI removal (in the same commit)
+
+- Deleted `TranscriptCLI/` (the entire `TranscriptCLI.swift`).
+- Removed the `transcript` native target, its build configurations, build phases, file references, scheme, and the `swift-argument-parser` SPM package + product dependency from `project.pbxproj`.
+- Deleted `xcshareddata/xcschemes/TranscriptCLI.xcscheme`.
+- README: dropped the entire "Command-line tool" section and replaced with a Pricing table.
+- LOG: this entry covers the removal.
+
+The CLI was always a power-user tool and adding subscription state plumbing between the GUI and a separate Mach-O binary was disproportionate. Net pbxproj diff: **−~80 lines**.
+
+### App Store / privacy
+
+- **No new entitlements.** StoreKit 2 works under sandbox unchanged.
+- **`PrivacyInfo.xcprivacy`** unchanged. Apple discloses purchase-history privacy implicitly through StoreKit; we don't access transaction data outside what StoreKit hands us.
+- **`docs/privacy.md`** updated with a Subscriptions paragraph (App Store handles all payment data; we never see it).
+- **`Resources/LICENSES.txt`** unchanged — FFmpeg LGPL notice + xTranscript MIT.
+
+### Verification
+
+- 18/18 tests pass.
+- `xcodebuild -scheme xTranscript build` clean. CLI scheme is gone (nothing to build).
+- Manual StoreKit testing flow documented in the plan file:
+  - Drop short file → transcribes.
+  - Drop > 5-min file → "fileExceedsFreeLimit" error + Upgrade button.
+  - Click Upgrade → sheet with $9.99/yr → buy → sheet dismisses, sidebar flips to Pro.
+  - Re-drop the > 5-min file → transcribes.
+  - Reset transactions → back to Free; Restore Purchases brings Pro back.
+
 ## 2026-04-25 (later) — FFmpeg as the only decoder; drop the AVFoundation backend
 
 ### What was done
