@@ -14,9 +14,15 @@ anyone else.
 ## What data xTranscript handles
 
 - **Audio files you pick.** When you drop an audio or video file onto
-  xTranscript, the app extracts its audio track, streams it (as
-  16 kHz mono PCM) over a secure WebSocket to `wss://api.x.ai/v1/stt`,
-  and receives the transcript.
+  xTranscript, the app extracts its audio track on your machine —
+  using AVFoundation when Apple supports the container, or an
+  embedded LGPL build of FFmpeg as a fallback for formats Apple
+  doesn't open (MKV, WebM, OGG/Opus, AVI, WMV). The decoded audio
+  is then streamed (as 16 kHz mono PCM) over a secure WebSocket to
+  `wss://api.x.ai/v1/stt`, and the transcript is returned. FFmpeg
+  itself runs entirely on your device and does not initiate any
+  network connections of its own (we built it with all network
+  protocols disabled).
 - **Your xAI API key.** Stored on your device in the system
   `UserDefaults` database. It is never sent anywhere except to xAI's
   own API, as the `Authorization` header on each request. You can

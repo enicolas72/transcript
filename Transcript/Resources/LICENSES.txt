@@ -1,0 +1,51 @@
+xTranscript — Open Source Acknowledgements
+============================================
+
+xTranscript embeds and links against the following open-source
+components. Each component's license is reproduced (or summarised
+with a pointer to the canonical text) below.
+
+────────────────────────────────────────────────────────────────────
+FFmpeg (libavformat, libavcodec, libavutil, libswresample)
+────────────────────────────────────────────────────────────────────
+
+Source: https://ffmpeg.org/
+Version shipped: see Vendor/FFmpeg-source-tag.txt in the project repo
+License:  GNU Lesser General Public License v2.1 or later (LGPL-2.1+)
+
+xTranscript links statically against an audio-only LGPL-only build of
+FFmpeg. No GPL or non-free components (libx264, libx265, libfdk-aac,
+libgsm, libamr, libtheora, libopencore-*, encoder_wavpack) are
+compiled in or linked. The exact `./configure` flags used to produce
+the build, and a SHA pinning the upstream commit, are recorded in
+`Vendor/FFmpeg-source-tag.txt`.
+
+LGPL §6 source-code availability:
+
+  Per the LGPL, you may obtain the corresponding source code for the
+  FFmpeg libraries shipped in this app — including any modifications
+  applied by us (none, at the time of writing) — from:
+
+    https://github.com/enicolas72/transcript/releases
+
+  Each release of xTranscript that embeds an FFmpeg version attaches
+  the full FFmpeg source tarball matching the SHA we built from, plus
+  the `scripts/build-ffmpeg.sh` recipe.
+
+Full LGPL v2.1 text:
+  https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt
+
+────────────────────────────────────────────────────────────────────
+Apple Swift Argument Parser  (CLI target only)
+────────────────────────────────────────────────────────────────────
+
+Source:  https://github.com/apple/swift-argument-parser
+License: Apache License, Version 2.0
+
+────────────────────────────────────────────────────────────────────
+xTranscript itself
+────────────────────────────────────────────────────────────────────
+
+Source:  https://github.com/enicolas72/transcript
+License: MIT
+Copyright © 2026 Eric Nicolas

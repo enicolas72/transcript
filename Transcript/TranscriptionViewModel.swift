@@ -10,8 +10,11 @@ final class TranscriptionViewModel: ObservableObject {
     @Published var settings = TranscriptionSettings()
 
     private let supportedExtensions: Set<String> = [
+        // AVFoundation native:
         "mp3", "wav", "m4a", "flac", "aac", "aiff", "caf",
-        "mp4", "mov"
+        "mp4", "mov", "m4v", "ts",
+        // FFmpeg fallback:
+        "mkv", "webm", "ogg", "opus", "oga", "avi", "wmv", "wma", "asf",
     ]
 
     private var currentTask: Task<Void, Never>?

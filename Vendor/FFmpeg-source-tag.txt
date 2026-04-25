@@ -1,0 +1,35 @@
+FFmpeg version: n7.1.1
+FFmpeg SHA:     db69d06eeeab4f46da15030a80d539efb4503ca8
+
+Build host:     arm64 macOS 26.4.1
+Xcode SDK:      /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk
+Deployment min: macOS 14.0
+
+Configure args (per-arch — read from one architecture's build dir):
+--prefix=/Volumes/X9/Home/Dev/transcript/Build/ffmpeg-build/install/arm64
+--target-os=darwin
+--arch=arm64
+--cc=clang
+--enable-cross-compile
+--enable-static
+--disable-shared
+--enable-pic
+--disable-everything
+--disable-doc
+--disable-programs
+--disable-debug
+--disable-network
+--disable-protocols
+--enable-protocol=file
+--disable-autodetect
+--disable-iconv
+--disable-asm
+--enable-swresample
+--enable-demuxer=matroska,ogg,mov,mp3,wav,flac,aac,aiff,mp4,avi,asf
+--enable-decoder=opus,vorbis,mp3,mp3float,aac,flac,ac3,eac3,wmav1,wmav2,wmavoice,wmapro,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s32le,pcm_f32le,pcm_alaw,pcm_mulaw
+--enable-parser=opus,vorbis,mpegaudio,aac,flac,ac3
+--extra-cflags=-arch arm64 -mmacosx-version-min=14.0 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk
+--extra-ldflags=-arch arm64 -mmacosx-version-min=14.0 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk
+
+Source download (LGPL §6 compliance):
+  https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n7.1.1.tar.gz

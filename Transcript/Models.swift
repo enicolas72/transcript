@@ -179,6 +179,9 @@ struct LabeledSegment {
 enum TranscriptionError: LocalizedError {
     case noOutput
     case emptyTranscription
+    /// Neither AVFoundation nor the FFmpeg fallback could open the file.
+    /// `detail` carries the underlying error chain or a hint.
+    case unsupportedFormat(url: URL, detail: String)
     /// macOS App Sandbox refused a write next to a dropped file. Files
     /// dropped on the app grant only read access to the file itself; the
     /// fix is to pick a custom output folder in Settings, which we receive
@@ -191,6 +194,8 @@ enum TranscriptionError: LocalizedError {
             return "No audio track found. Check that the input is a valid audio/video file."
         case .emptyTranscription:
             return "Transcription produced no words. The file may contain no speech."
+        case .unsupportedFormat(let url, let detail):
+            return "Couldn't decode \"\(url.lastPathComponent)\": \(detail)"
         case .outputPermissionDenied(let folder):
             return """
                 macOS sandbox blocked writing to \"\(folder)\". Files dropped onto the app \

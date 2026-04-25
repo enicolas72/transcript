@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @ObservedObject var vm: TranscriptionViewModel
+    @State private var showAcknowledgements = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -17,9 +18,16 @@ struct SidebarView: View {
             apiKeySection
 
             Spacer()
+
+            Button("Acknowledgements…") { showAcknowledgements = true }
+                .font(.caption)
+                .buttonStyle(.link)
         }
         .padding()
         .background(Color(nsColor: .windowBackgroundColor))
+        .sheet(isPresented: $showAcknowledgements) {
+            AcknowledgementsView(isPresented: $showAcknowledgements)
+        }
     }
 
     // MARK: - Output Folder
@@ -145,5 +153,42 @@ struct SidebarView: View {
             }
             .disabled(vm.isProcessing)
         }
+    }
+}
+
+// MARK: - Acknowledgements
+
+private struct AcknowledgementsView: View {
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Open-source acknowledgements").font(.headline)
+                Spacer()
+                Button("Done") { isPresented = false }
+                    .keyboardShortcut(.defaultAction)
+            }
+
+            ScrollView {
+                Text(loadLicenses())
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .padding(8)
+            }
+            .background(Color(nsColor: .textBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .padding()
+        .frame(width: 640, height: 480)
+    }
+
+    private func loadLicenses() -> String {
+        if let url = Bundle.main.url(forResource: "LICENSES", withExtension: "txt"),
+           let text = try? String(contentsOf: url, encoding: .utf8) {
+            return text
+        }
+        return "Acknowledgements file missing from bundle. See README on GitHub."
     }
 }

@@ -42,8 +42,8 @@ struct TranscriptionService {
 
         onProgress(ProgressUpdate(kind: .status("Extracting audio...")))
         onProgress(ProgressUpdate(kind: .progress(0.05)))
-        log("Opening audio track (PCM16 LE mono @ 16 kHz)")
         let reader = try await AudioExtractor.openPCMReader(fileURL)
+        log("Opened via \(reader.backendName) (PCM16 LE mono @ 16 kHz)")
         log("Total PCM: \(ByteCountFormatter.string(fromByteCount: reader.totalBytes, countStyle: .binary))")
 
         onProgress(ProgressUpdate(kind: .status("Streaming to xAI...")))

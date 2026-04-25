@@ -1,5 +1,37 @@
 # Development Log
 
+## 2026-04-25 — Embed FFmpeg as fallback decoder (MKV / WebM / OGG / AVI / WMV)
+
+### What was done
+
+- **Built an audio-only LGPL FFmpeg XCFramework** at `Vendor/FFmpeg.xcframework` (universal arm64 + x86_64, **7.6 MB**). The build is reproducible via `scripts/build-ffmpeg.sh`: clones FFmpeg `n7.1.1`, configures with `--disable-everything` then an explicit allow-list of demuxers (matroska/ogg/mov/mp3/wav/flac/aac/aiff/mp4/avi/asf), audio decoders (opus/vorbis/mp3/aac/flac/ac3/eac3/wmav1/wmav2/wmavoice/wmapro/pcm_*), and parsers. No GPL components, no non-free codecs, no network protocols (only `--enable-protocol=file`), no asm. Post-build the script greps for `x264`/`x265`/`fdk`/`gsm`/`amr`/`theora`/`opencore`/`wavpack_encoder` symbols — fails the build if any leak in.
+- **`PCMReader` is now a protocol** with two backends (`AudioExtractor.swift`):
+  - `AVFoundationPCMReader` — fast path for everything Apple opens natively (MP3/M4A/MP4/MOV/WAV/FLAC/AAC/AIFF/CAF).
+  - `FFmpegPCMReader` (`FFmpegPCMReader.swift`) — Swift bridge over libavformat/libavcodec/libswresample. RAII-style lifecycle for `AVFormatContext`/`AVCodecContext`/`SwrContext`/`AVPacket`/`AVFrame`. Decodes any audio stream, resamples to 16 kHz mono S16-LE via `swr_convert`, yields the same chunked shape as the AVFoundation backend.
+- **`AudioExtractor.openPCMReader(_:)` is now a dispatcher** — tries AVFoundation, falls back to FFmpeg on refusal. `TranscriptionService` now logs `Opened via AVFoundation` or `Opened via FFmpeg` so users (and us) can tell which backend handled a file.
+- **Module map.** `Vendor/FFmpeg.xcframework/.../Headers/module.modulemap` lists the ~25 headers we actually use. Originally tried `umbrella "."` and got bitten by FFmpeg's platform-specific hardware-accel headers (d3d11va.h, hwcontext_cuda.h, …) trying to include Windows/Linux-only system headers; the explicit list dodges them.
+- **CFFmpeg module imports cleanly** from Swift, full Swift bridge sketch is ~280 lines, all type-checked end-to-end. The XCFramework links statically into both the app dylib and the CLI binary (no embedded framework copy needed for static libs).
+- **Universal universe of UI affordances:**
+  - `supportedExtensions` extended with `mkv, webm, ogg, opus, oga, avi, wmv, wma, asf, m4v, ts`.
+  - Drop-zone copy in `ContentView` updated to advertise the new formats.
+  - **Acknowledgements sheet** added to `SidebarView`. A "Acknowledgements…" link at the bottom of the sidebar opens a modal with the full text of the bundled `Resources/LICENSES.txt` (FFmpeg LGPL notice, GitHub release link for source-code availability, plus xTranscript's own MIT and ArgumentParser's Apache-2 notices). Required for LGPL §6 compliance.
+  - `LICENSES.txt` is wired into the app target's Resources phase so it ships inside the bundle.
+- **Tests.** Three small fixtures (each <8 KB) are committed in `TranscriptTests/Fixtures/`: `sine.mkv` (AAC), `sine.webm` (Opus), `sine.ogg` (Opus) — generated from a 2-second 440 Hz sine via the system ffmpeg. `FFmpegPCMReaderTests` reads each, verifies chunked S16-LE output, and asserts the total byte count is within ±10 % of the expected 64 000 bytes (2 s × 16 kHz × 2 B/sample). All three pass; total test count 14 → **17**.
+- **Provenance.** `Vendor/FFmpeg-source-tag.txt` records the exact FFmpeg SHA, configure flags, build host, SDK, and the LGPL §6 source-code download URL. Re-emitted on every script run.
+
+### App Store risk-mitigation work delivered
+
+1. ✅ Attribution UI: Acknowledgements sheet in the sidebar.
+2. ✅ Source-code availability link in the manifest, pointing at GitHub Releases (we'll attach the FFmpeg source tarball + build script to each release that bumps the FFmpeg version).
+3. ✅ No-GPL-leak check baked into `scripts/build-ffmpeg.sh`.
+4. ✅ Bundled `LICENSES.txt` in `Resources/`.
+5. ✅ No new entitlements needed — `--disable-network` in the FFmpeg build means it never tries to open a socket; the existing `network.client` covers xAI alone.
+6. ✅ Hardened runtime works as-is — static linking, no dlopen, no JIT.
+
+### Known limitation
+
+- `--disable-asm` was used to avoid Yasm/NASM dependency surface. We give up some decode speed (typically 5-15 % slower than asm-optimised builds) — fine for a desktop app where transcription is bottlenecked on the network call to xAI anyway.
+
 ## 2026-04-23 (latest) — Finalize bundle ID + host-free App Store URLs
 
 ### What was done
