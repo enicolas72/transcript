@@ -2,6 +2,7 @@
 .build/
 build/
 DerivedData/
+Private
 *.xcuserdata
 xcuserdata/
 Transcript.app
@@ -9,7 +10,3 @@ Transcript.app
 # Local Claude Code settings
 .claude/
 
-# API keys — the app persists the xAI key in UserDefaults; never commit it
-xai-api-key.txt
-*.api-key
-*.api_key

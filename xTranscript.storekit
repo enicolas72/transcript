@@ -1,0 +1,85 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "B2F21AEA",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6763399519",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "6RGQ2PUZVD",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 798829544.772439,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "22052074",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "xTranscript Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "xTranscript",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "8.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "6763715509",
+          "introductoryOffers" : [
+
+          ],
+          "localizations" : [
+            {
+              "description" : "Unlimited audio length per file. Cancel anytime.",
+              "displayName" : "xTranscript Pro",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "net.eric_nicolas.xtranscript.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "xTranscript Pro",
+          "subscriptionGroupID" : "22052074",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 5,
+    "minor" : 0
+  }
+}

@@ -22,6 +22,13 @@
     <true/>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
+    <!-- Mac App Store category. Required by App Store validation.
+         Primary category is what users see; sets the app's storefront
+         placement. Productivity is the standard fit for transcription /
+         note-taking utilities. The full UTI list lives at
+         developer.apple.com/documentation/bundleresources/information_property_list/lsapplicationcategorytype -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
     <!-- Encryption export compliance: the app uses only the system's TLS
          implementation (HTTPS/WSS to xAI). Declaring no proprietary crypto
          short-circuits the export-compliance questionnaire on App Store submission. -->
