@@ -1,8 +1,4 @@
 module CFFmpeg {
-    // Listed explicitly to skip the platform-specific hardware-acceleration
-    // headers (d3d11va.h, qsv.h, hwcontext_cuda.h, …) that wouldn't compile
-    // on macOS. We only need the small slice of FFmpeg's API used by
-    // FFmpegPCMReader.swift.
     header "libavformat/avformat.h"
 
     header "libavcodec/avcodec.h"

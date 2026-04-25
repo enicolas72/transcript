@@ -6,7 +6,7 @@ A native macOS transcription tool — GUI app and command-line — that sends au
 
 - **GUI app + CLI** — drag-and-drop desktop app and `transcript` command-line tool
 - **11 languages** via `grok-stt` (English, French, German, Spanish, Italian, Portuguese, Dutch, Russian, Chinese, Japanese, Korean — xAI's streaming endpoint requires an explicit language, no auto-detection)
-- **Universal input format support** — AVFoundation handles MP3/M4A/MP4/MOV/WAV/FLAC/AAC/AIFF/CAF; an embedded LGPL-only FFmpeg fallback handles everything else (MKV, WebM, OGG/Opus, AVI, WMV, WMA, …)
+- **Universal input format support** — every file is decoded by the embedded LGPL-only FFmpeg build (MP3, M4A, MP4, MOV, WAV, FLAC, AAC, AIFF, CAF, ALAC, MKV, WebM, OGG/Opus, AVI, WMV, WMA, …)
 - **Dual output** — `.txt` transcript and `.srt` subtitles
 - **Speaker detection** — word-level speaker IDs returned by the API in a single call
 - **Multi-file queue** — process multiple files sequentially, with per-file status tracking
@@ -75,8 +75,8 @@ Transcript/                         # GUI app (SwiftUI)
 ├── ContentView.swift               # Three-column layout (sidebar, log, file queue)
 ├── SidebarView.swift               # Settings panel (output, language, formats, API key)
 ├── TranscriptionService.swift      # Orchestrator: open PCM stream → pipe through WebSocket → group → write (shared)
-├── AudioExtractor.swift            # PCMReader protocol + AVFoundation backend + dispatcher (shared)
-├── FFmpegPCMReader.swift           # LGPL FFmpeg fallback backend (MKV/WebM/OGG/AVI/WMV) (shared)
+├── AudioExtractor.swift            # Thin entry point: opens an FFmpegPCMReader (shared)
+├── FFmpegPCMReader.swift           # LGPL FFmpeg decoder for every supported format (shared)
 ├── XAIClient.swift                 # Streaming client for wss://api.x.ai/v1/stt (shared)
 └── OutputGenerator.swift           # TXT and SRT generation (shared)
 
@@ -93,10 +93,7 @@ The 5 core logic files are shared between the GUI app and CLI targets. Only the 
 
 1. Files are dropped onto the right panel (multiple files supported, processed sequentially)
 2. Existing output files are detected — user is prompted before overwriting
-3. Audio is read as **16 kHz mono Int16 PCM** via AVFoundation when the
-   container is supported, otherwise via the embedded LGPL FFmpeg
-   fallback (`Vendor/FFmpeg.xcframework`). Either way the result is
-   streamed in ~250 ms chunks
+3. Audio is decoded to **16 kHz mono Int16 PCM** via the embedded LGPL FFmpeg build (`Vendor/FFmpeg.xcframework`) and streamed in ~250 ms chunks
 4. Each chunk is pushed over a **WebSocket to `wss://api.x.ai/v1/stt`** with the chosen language code; chunk-final partials stream back in real time
 5. On `transcript.done` the full word list is grouped into speaker-coherent `LabeledSegment`s
 6. `.txt` and `.srt` files are written next to the input file (or to a custom folder)

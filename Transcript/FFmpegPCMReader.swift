@@ -2,16 +2,16 @@ import Foundation
 import CFFmpeg
 
 /// PCM reader backed by FFmpeg (libavformat / libavcodec / libswresample).
-/// Used as a fallback when AVFoundation refuses a container — MKV, WebM,
-/// OGG/Opus, AVI, WMV, and so on.
+/// Used for every input file — the LGPL-only audio-decoder XCFramework at
+/// `Vendor/FFmpeg.xcframework` is a strict superset of what AVFoundation
+/// can open.
 ///
-/// Decodes any audio stream the LGPL-only build supports (see
+/// Decodes any audio stream the build supports (see
 /// `scripts/build-ffmpeg.sh` for the enabled demuxer/decoder list),
 /// resamples to 16 kHz mono PCM16-LE via libswresample, and yields it in
-/// the same chunked shape as `AVFoundationPCMReader`.
-final class FFmpegPCMReader: PCMReader {
+/// fixed-size chunks suitable for streaming over the xAI WebSocket.
+final class FFmpegPCMReader {
     private(set) var totalBytes: Int64 = 0
-    let backendName = "FFmpeg"
 
     private var formatContext: UnsafeMutablePointer<AVFormatContext>? = nil
     private var codecContext: UnsafeMutablePointer<AVCodecContext>? = nil

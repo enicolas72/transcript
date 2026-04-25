@@ -1,5 +1,19 @@
 # Development Log
 
+## 2026-04-25 (later) — FFmpeg as the only decoder; drop the AVFoundation backend
+
+### What was done
+
+- **Deleted the AVFoundation backend.** With the FFmpeg XCFramework already shipping (7.6 MB, paid for), running two decoders for two halves of the format set was complexity without payoff: the bottleneck is the network call to xAI, not decode speed. One backend = one bug surface, one log line, one set of tests.
+- **`PCMReader` protocol gone**, `AVFoundationPCMReader` deleted. `AudioExtractor.openPCMReader(_:)` now just constructs an `FFmpegPCMReader`. `XAIClient.streamingTranscribe(reader:)` takes a concrete `FFmpegPCMReader`. `backendName` removed.
+- **Made the FFmpeg build a strict superset of AVFoundation.** Added `caf` to the demuxer enable-list and `alac` to the decoder enable-list in `scripts/build-ffmpeg.sh` so we don't lose Apple Lossless / Core Audio Format support that AVFoundation handled natively. XCFramework rebuilt (~7.7 MB now, +0.1 MB).
+- **AVFoundation is still used in one place: `AudioExtractor.probeDuration`.** It's a fast, header-only duration probe used purely for the log line. Cheap and accurate on every container we accept; if it fails, we just don't log the duration line.
+- **MP3 fixture test added** (`testDecodesMP3` in `FFmpegPCMReaderTests`) to verify the FFmpeg path also handles formats AVFoundation used to handle natively. 17 → **18 tests**.
+
+### Why now
+
+We weighed the trade-off: dropping AVFoundation means losing hardware decoding (irrelevant — xAI network call dominates) and any Apple-specific edge-case handling. We weighed those against a strictly simpler codebase (one decoder, one log path, one set of failures). The tipping factor: fewer ways for a user to hit a "weird format" bug.
+
 ## 2026-04-25 — Embed FFmpeg as fallback decoder (MKV / WebM / OGG / AVI / WMV)
 
 ### What was done

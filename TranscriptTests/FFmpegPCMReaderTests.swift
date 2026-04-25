@@ -25,6 +25,13 @@ final class FFmpegPCMReaderTests: XCTestCase {
         try expectChunkedPCM(fixture: "sine", ext: "ogg")
     }
 
+    /// Sanity check that the FFmpeg path also handles what AVFoundation
+    /// used to handle natively, now that we've dropped the AVFoundation
+    /// backend. MP3 → Matroska/AAC etc. are all the same code path.
+    func testDecodesMP3() throws {
+        try expectChunkedPCM(fixture: "sine", ext: "mp3")
+    }
+
     // MARK: - Helpers
 
     private func fixtureURL(_ name: String, _ ext: String) throws -> URL {
@@ -44,7 +51,6 @@ final class FFmpegPCMReaderTests: XCTestCase {
     private func expectChunkedPCM(fixture: String, ext: String) throws {
         let url = try fixtureURL(fixture, ext)
         let reader = try FFmpegPCMReader(fileURL: url)
-        XCTAssertEqual(reader.backendName, "FFmpeg")
 
         var totalBytes = 0
         var chunkCount = 0

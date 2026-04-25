@@ -1,7 +1,7 @@
 import Foundation
 
 /// Streaming client for xAI's Speech-to-Text WebSocket
-/// (`wss://api.x.ai/v1/stt`). Pipes PCM chunks from a `PCMReader`
+/// (`wss://api.x.ai/v1/stt`). Pipes PCM chunks from an `FFmpegPCMReader`
 /// over the socket and decodes `transcript.partial` / `transcript.done` events
 /// as they arrive. Replaces the earlier batch POST, which couldn't handle
 /// long files inside the API's request timeout.
@@ -64,7 +64,7 @@ enum XAIClient {
     ///   the authoritative transcript — the full one arrives in `transcript.done`.
     /// - `onUploadProgress(sent, total)` is called as PCM bytes are pushed.
     static func streamingTranscribe(
-        reader: any PCMReader,
+        reader: FFmpegPCMReader,
         languageCode: String?,
         diarize: Bool,
         apiKey: String,
@@ -206,7 +206,7 @@ enum XAIClient {
     // MARK: - Sender
 
     private static func sendPCM(
-        reader: any PCMReader,
+        reader: FFmpegPCMReader,
         task: URLSessionWebSocketTask,
         log: @escaping @Sendable (String) -> Void,
         onUploadProgress: @escaping @Sendable (Int64, Int64) -> Void

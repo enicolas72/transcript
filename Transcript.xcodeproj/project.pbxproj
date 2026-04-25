@@ -26,6 +26,7 @@
 		C1000006 /* sine.mkv in Resources */ = {isa = PBXBuildFile; fileRef = C2000007 /* sine.mkv */; };
 		C1000007 /* sine.ogg in Resources */ = {isa = PBXBuildFile; fileRef = C2000008 /* sine.ogg */; };
 		C1000008 /* sine.webm in Resources */ = {isa = PBXBuildFile; fileRef = C2000009 /* sine.webm */; };
+		C1000009 /* sine.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C200000A /* sine.mp3 */; };
 		E1000001 /* TranscriptCLI.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2000001 /* TranscriptCLI.swift */; };
 		E1000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* Models.swift */; };
 		E1000003 /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* TranscriptionService.swift */; };
@@ -71,6 +72,7 @@
 		C2000007 /* sine.mkv */ = {isa = PBXFileReference; lastKnownFileType = file; path = sine.mkv; sourceTree = "<group>"; };
 		C2000008 /* sine.ogg */ = {isa = PBXFileReference; lastKnownFileType = file; path = sine.ogg; sourceTree = "<group>"; };
 		C2000009 /* sine.webm */ = {isa = PBXFileReference; lastKnownFileType = file; path = sine.webm; sourceTree = "<group>"; };
+		C200000A /* sine.mp3 */ = {isa = PBXFileReference; lastKnownFileType = file; path = sine.mp3; sourceTree = "<group>"; };
 		D2000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		D2000002 /* THOUGHTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THOUGHTS.md; sourceTree = "<group>"; };
 		E2000001 /* TranscriptCLI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCLI.swift; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 			isa = PBXGroup;
 			children = (
 				C2000007 /* sine.mkv */,
+				C200000A /* sine.mp3 */,
 				C2000008 /* sine.ogg */,
 				C2000009 /* sine.webm */,
 			);
@@ -296,6 +299,7 @@
 				C1000006 /* sine.mkv in Resources */,
 				C1000007 /* sine.ogg in Resources */,
 				C1000008 /* sine.webm in Resources */,
+				C1000009 /* sine.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
