@@ -16,7 +16,7 @@ final class SubscriptionManager: ObservableObject {
     /// Apple App Store product ID for the yearly subscription. Must match
     /// the entry in `Transcript/Configuration/Products.storekit` and the
     /// product registered in App Store Connect.
-    static let proYearlyProductID = "net.eric_nicolas.xtranscript.pro.yearly"
+    static let proYearlyProductID = "yearly"
 
     @Published private(set) var isPro: Bool = false
     @Published private(set) var product: Product? = nil
@@ -64,16 +64,19 @@ final class SubscriptionManager: ObservableObject {
 
     func loadProduct() async {
         print("[Subs] loadProduct: querying Product.products(for: [\(Self.proYearlyProductID)])…")
+        // Clear any stale loading error so a successful retry resets the UI.
+        self.lastError = nil
         do {
             let products = try await Product.products(for: [Self.proYearlyProductID])
             print("[Subs] loadProduct: returned \(products.count) product(s): \(products.map { $0.id })")
-            self.product = products.first
-            if products.isEmpty {
-                self.lastError = "StoreKit returned no products for ID \(Self.proYearlyProductID). Check Products.storekit ↔ SubscriptionManager.proYearlyProductID and the scheme's StoreKit config."
+            if let first = products.first {
+                self.product = first
+            } else {
+                self.lastError = "Couldn't load subscription details from the App Store. Check your internet connection and try again."
             }
         } catch {
             print("[Subs] loadProduct: threw \(error)")
-            self.lastError = "Couldn't load subscription product: \(error.localizedDescription)"
+            self.lastError = "Couldn't load subscription details: \(error.localizedDescription)"
         }
     }
 

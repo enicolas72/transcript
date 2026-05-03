@@ -9,7 +9,7 @@
       }
     ]
   },
-  "identifier" : "B2F21AEA",
+  "identifier" : "1CE31F64",
   "nonRenewingSubscriptions" : [
 
   ],
@@ -24,7 +24,7 @@
     "_developerTeamID" : "6RGQ2PUZVD",
     "_disableDialogs" : false,
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 798829544.772439,
+    "_lastSynchronizedDate" : 799516894.49300504,
     "_locale" : "en_US",
     "_renewalBillingIssuesEnabled" : false,
     "_storefront" : "USA",
@@ -35,7 +35,7 @@
   },
   "subscriptionGroups" : [
     {
-      "id" : "22052074",
+      "id" : "22065712",
       "localizations" : [
         {
           "description" : "",
@@ -52,24 +52,24 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "8.99",
+          "displayPrice" : "7.99",
           "familyShareable" : true,
           "groupNumber" : 1,
-          "internalID" : "6763715509",
+          "internalID" : "6766080170",
           "introductoryOffers" : [
 
           ],
           "localizations" : [
             {
-              "description" : "Unlimited audio length per file. Cancel anytime.",
+              "description" : "Unlimited audio transcription",
               "displayName" : "xTranscript Pro",
               "locale" : "en_US"
             }
           ],
-          "productID" : "net.eric_nicolas.xtranscript.pro.yearly",
+          "productID" : "yearly",
           "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "xTranscript Pro",
-          "subscriptionGroupID" : "22052074",
+          "referenceName" : "Yearly",
+          "subscriptionGroupID" : "22065712",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 
