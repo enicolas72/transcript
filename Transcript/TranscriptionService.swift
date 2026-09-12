@@ -22,7 +22,6 @@ struct TranscriptionService {
         speakerDetection: Bool,
         language: TranscriptLanguage,
         apiKey: String,
-        maxDurationSeconds: Double? = nil,
         requestWriteAccess: WriteAccessRequest? = nil,
         onProgress: @escaping @Sendable (ProgressUpdate) -> Void
     ) async throws -> TranscriptionResult {
@@ -44,13 +43,6 @@ struct TranscriptionService {
         onProgress(ProgressUpdate(kind: .status("Extracting audio...")))
         onProgress(ProgressUpdate(kind: .progress(0.05)))
         let reader = try AudioExtractor.openPCMReader(fileURL)
-        let durationSeconds = Double(reader.totalBytes) / Double(AudioExtractor.bytesPerSecond)
-        if let maxDurationSeconds, durationSeconds > maxDurationSeconds {
-            throw TranscriptionError.fileExceedsFreeLimit(
-                durationSec: durationSeconds,
-                freeLimitSec: maxDurationSeconds
-            )
-        }
         log("Decoded to PCM16 LE mono @ 16 kHz (FFmpeg, \(ByteCountFormatter.string(fromByteCount: reader.totalBytes, countStyle: .binary)))")
 
         onProgress(ProgressUpdate(kind: .status("Streaming to xAI...")))

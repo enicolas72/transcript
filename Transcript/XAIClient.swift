@@ -356,7 +356,7 @@ enum XAIError: LocalizedError {
         case .decodeFailed(_, let preview):
             return "Could not parse xAI event. First bytes: \(preview)"
         case .missingAPIKey:
-            return "xAI API key is not set. Paste it in the Settings sidebar (or pass --api-key / set XAI_API_KEY for the CLI)."
+            return "xAI API key is not set. Paste it in the Settings sidebar (get one at console.x.ai)."
         }
     }
 }

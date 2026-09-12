@@ -21,16 +21,12 @@
 		A1000014 /* FFmpegPCMReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000016 /* FFmpegPCMReader.swift */; };
 		A1000015 /* FFmpeg.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A2000017 /* FFmpeg.xcframework */; };
 		A1000016 /* Resources/LICENSES.txt in Resources */ = {isa = PBXBuildFile; fileRef = A2000018 /* Resources/LICENSES.txt */; };
-		A1000017 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000019 /* SubscriptionManager.swift */; };
-		A1000018 /* UpgradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200001A /* UpgradeView.swift */; };
 		C1000002 /* OutputGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000002 /* OutputGeneratorTests.swift */; };
 		C1000005 /* FFmpegPCMReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2000006 /* FFmpegPCMReaderTests.swift */; };
 		C1000006 /* sine.mkv in Resources */ = {isa = PBXBuildFile; fileRef = C2000007 /* sine.mkv */; };
 		C1000007 /* sine.ogg in Resources */ = {isa = PBXBuildFile; fileRef = C2000008 /* sine.ogg */; };
 		C1000008 /* sine.webm in Resources */ = {isa = PBXBuildFile; fileRef = C2000009 /* sine.webm */; };
 		C1000009 /* sine.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C200000A /* sine.mp3 */; };
-		E249A3182FA7A8DA00513CDB /* xTranscript.storekit in Resources */ = {isa = PBXBuildFile; fileRef = E249A3172FA7A8DA00513CDB /* xTranscript.storekit */; };
-		E2EF0FC92F9CA9E40009EDBC /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2EF0FC82F9CA9E40009EDBC /* StoreKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,8 +57,6 @@
 		A2000016 /* FFmpegPCMReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegPCMReader.swift; sourceTree = "<group>"; };
 		A2000017 /* FFmpeg.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = FFmpeg.xcframework; path = Vendor/FFmpeg.xcframework; sourceTree = "<group>"; };
 		A2000018 /* Resources/LICENSES.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/LICENSES.txt; sourceTree = "<group>"; };
-		A2000019 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
-		A200001A /* UpgradeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpgradeView.swift; sourceTree = "<group>"; };
 		C2000002 /* OutputGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputGeneratorTests.swift; sourceTree = "<group>"; };
 		C2000003 /* TranscriptTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TranscriptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C2000006 /* FFmpegPCMReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegPCMReaderTests.swift; sourceTree = "<group>"; };
@@ -71,8 +65,6 @@
 		C2000009 /* sine.webm */ = {isa = PBXFileReference; lastKnownFileType = file; path = sine.webm; sourceTree = "<group>"; };
 		C200000A /* sine.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = sine.mp3; sourceTree = "<group>"; };
 		D2000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		E249A3172FA7A8DA00513CDB /* xTranscript.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = xTranscript.storekit; sourceTree = "<group>"; };
-		E2EF0FC82F9CA9E40009EDBC /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,7 +73,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000015 /* FFmpeg.xcframework in Frameworks */,
-				E2EF0FC92F9CA9E40009EDBC /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,7 +89,6 @@
 		A4000001 = {
 			isa = PBXGroup;
 			children = (
-				E249A3172FA7A8DA00513CDB /* xTranscript.storekit */,
 				D2000001 /* README.md */,
 				A4000002 /* Transcript */,
 				C4000001 /* TranscriptTests */,
@@ -116,8 +106,6 @@
 				A2000006 /* TranscriptionViewModel.swift */,
 				A2000007 /* ContentView.swift */,
 				A2000008 /* SidebarView.swift */,
-				A2000019 /* SubscriptionManager.swift */,
-				A200001A /* UpgradeView.swift */,
 				A2000002 /* TranscriptionService.swift */,
 				A2000013 /* AudioExtractor.swift */,
 				A2000016 /* FFmpegPCMReader.swift */,
@@ -173,7 +161,6 @@
 		E2EF0FC72F9CA9E40009EDBC /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				E2EF0FC82F9CA9E40009EDBC /* StoreKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -255,7 +242,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				A100000A /* Assets.xcassets in Resources */,
-				E249A3182FA7A8DA00513CDB /* xTranscript.storekit in Resources */,
 				A1000013 /* PrivacyInfo.xcprivacy in Resources */,
 				A1000016 /* Resources/LICENSES.txt in Resources */,
 			);
@@ -284,8 +270,6 @@
 				A1000004 /* TranscriptionViewModel.swift in Sources */,
 				A1000005 /* ContentView.swift in Sources */,
 				A1000006 /* SidebarView.swift in Sources */,
-				A1000017 /* SubscriptionManager.swift in Sources */,
-				A1000018 /* UpgradeView.swift in Sources */,
 				A1000002 /* TranscriptionService.swift in Sources */,
 				A1000008 /* OutputGenerator.swift in Sources */,
 				A1000011 /* AudioExtractor.swift in Sources */,
@@ -426,7 +410,7 @@
 				CODE_SIGN_ENTITLEMENTS = Transcript/xTranscript.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6RGQ2PUZVD;
 				ENABLE_APP_SANDBOX = YES;
@@ -446,7 +430,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "net.eric-nicolas.xtranscript";
 				PRODUCT_MODULE_NAME = xTranscript;
 				PRODUCT_NAME = xTranscript;
@@ -462,7 +446,7 @@
 				CODE_SIGN_ENTITLEMENTS = Transcript/xTranscript.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6RGQ2PUZVD;
 				ENABLE_APP_SANDBOX = YES;
@@ -482,7 +466,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "net.eric-nicolas.xtranscript";
 				PRODUCT_MODULE_NAME = xTranscript;
 				PRODUCT_NAME = xTranscript;

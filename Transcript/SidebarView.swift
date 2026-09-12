@@ -2,9 +2,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @ObservedObject var vm: TranscriptionViewModel
-    @ObservedObject var subscription: SubscriptionManager
     @State private var showAcknowledgements = false
-    @State private var showUpgrade = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -18,8 +16,6 @@ struct SidebarView: View {
             outputFormatsSection
             Divider()
             apiKeySection
-            Divider()
-            subscriptionSection
 
             Spacer()
 
@@ -31,47 +27,6 @@ struct SidebarView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .sheet(isPresented: $showAcknowledgements) {
             AcknowledgementsView(isPresented: $showAcknowledgements)
-        }
-        .sheet(isPresented: $showUpgrade) {
-            UpgradeView(isPresented: $showUpgrade, subscription: subscription)
-        }
-    }
-
-    // MARK: - Subscription
-
-    private var subscriptionSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Subscription")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            if subscription.isPro {
-                Label("xTranscript Pro", systemImage: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
-                    .font(.callout)
-                Link("Manage subscription…",
-                     destination: URL(string: "itms-apps://apps.apple.com/account/subscriptions")!)
-                    .font(.caption)
-            } else {
-                Text("Free — 5 min limit per file")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Button {
-                    showUpgrade = true
-                } label: {
-                    if let price = subscription.product?.displayPrice {
-                        Text("Upgrade to Pro · \(price) / year")
-                    } else {
-                        Text("Upgrade to Pro")
-                    }
-                }
-                .controlSize(.small)
-                Button("Restore Purchases") {
-                    Task { await subscription.restore() }
-                }
-                .font(.caption)
-                .buttonStyle(.link)
-            }
         }
     }
 

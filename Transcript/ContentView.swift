@@ -1,24 +1,12 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var subscription: SubscriptionManager
-    @StateObject private var vm: TranscriptionViewModel
+    @StateObject private var vm = TranscriptionViewModel()
     @State private var isTargeted = false
-    @State private var showUpgrade = false
-
-    init() {
-        // SwiftUI requires the StateObject's wrapped value to be set
-        // synchronously here so that the ViewModel can hold a strong
-        // reference to the same SubscriptionManager instance the sidebar
-        // observes. Both are owned by ContentView for the window's lifetime.
-        let subs = SubscriptionManager()
-        _subscription = StateObject(wrappedValue: subs)
-        _vm = StateObject(wrappedValue: TranscriptionViewModel(subscription: subs))
-    }
 
     var body: some View {
         HStack(spacing: 0) {
-            SidebarView(vm: vm, subscription: subscription)
+            SidebarView(vm: vm)
                 .frame(width: 220)
 
             Divider()
@@ -35,9 +23,6 @@ struct ContentView: View {
         .background(WindowAccessor())
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
             vm.handleDrop(providers: providers)
-        }
-        .sheet(isPresented: $showUpgrade) {
-            UpgradeView(isPresented: $showUpgrade, subscription: subscription)
         }
     }
 
@@ -182,18 +167,6 @@ struct ContentView: View {
             }
 
             Spacer()
-
-            if file.status.suggestsUpgrade {
-                Button {
-                    showUpgrade = true
-                } label: {
-                    Image(systemName: "sparkles")
-                        .foregroundColor(.accentColor)
-                        .font(.system(size: 14))
-                }
-                .buttonStyle(.plain)
-                .help("Upgrade to xTranscript Pro")
-            }
 
             if case .error = file.status {
                 Button {

@@ -1,9 +1,8 @@
 import XCTest
-@testable import Transcript
+@testable import xTranscript
 
-/// Integration tests for the FFmpeg fallback decoder. Each fixture is a
-/// 2-second 8 kHz mono sine wave, encoded with a different (non-AVFoundation)
-/// codec/container. The decoder is expected to produce ~64 KB of PCM16 LE
+/// Integration tests for the embedded FFmpeg decoder. Each fixture is a
+/// 2-second 8 kHz mono sine wave, encoded with a different codec/container. The decoder is expected to produce ~64 KB of PCM16 LE
 /// (2 s × 16 kHz × 2 bytes/sample = 64 000 bytes), within ±10 % to allow
 /// for codec encoder/decoder padding and boundary effects.
 final class FFmpegPCMReaderTests: XCTestCase {

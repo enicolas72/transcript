@@ -1,5 +1,5 @@
 import XCTest
-@testable import Transcript
+@testable import xTranscript
 
 final class OutputGeneratorTests: XCTestCase {
 

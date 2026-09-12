@@ -1,6 +1,30 @@
 # Development Log
 
-## 2026-04-25 (latest) — Freemium ($9.99/yr Pro) + drop the CLI
+## 2026-09-12 08:40 — 1.1.0: fully open source, StoreKit removed
+
+### What was done
+
+- **Removed the freemium layer entirely.** Deleted `SubscriptionManager.swift`, `UpgradeView.swift`, and `xTranscript.storekit`. Removed `StoreKit.framework` from the Frameworks phase, the `.storekit` file from the Resources phase, and the `storeKitConfigurationFileReference` from the shared scheme. `plutil -lint` clean.
+- **5-minute gate gone.** `TranscriptionService.transcribe` lost its `maxDurationSeconds` parameter and the duration check. `TranscriptionError.fileExceedsFreeLimit` and `FileStatus.suggestsUpgrade` deleted. `TranscriptionViewModel` no longer takes a `SubscriptionManager`; its init is parameterless again and `ContentView` builds it as a plain `@StateObject`.
+- **UI.** Sidebar "Subscription" section, the two `UpgradeView` sheets (sidebar + `ContentView`), and the sparkles "Upgrade" button on error rows are removed. The sidebar is back to Output folder / Language / Output formats / API key / Acknowledgements.
+- **Version bump** to 1.1.0, build 3 (`Info.plist`, `MARKETING_VERSION`, `CURRENT_PROJECT_VERSION`) for a fresh App Store upload.
+- **Open source housekeeping.** Added an MIT `LICENSE` at the repo root (README had claimed MIT since day one but no license file was ever committed). Dropped the stale Swift Argument Parser notice from `Resources/LICENSES.txt` — the CLI target that used it was deleted in April.
+- **Tests fixed.** Both test files still did `@testable import Transcript`, but the module was renamed to `xTranscript` during the 1.0.0 prep on 2026-04-25, so the test target had not compiled since. Now `@testable import xTranscript`; 18/18 pass again.
+- **Stale wording swept.** The `missingAPIKey` error still told users to "pass --api-key / set XAI_API_KEY for the CLI" (deleted in April); now points at console.x.ai. Comments in `Models`, `TranscriptionViewModel`, and the FFmpeg tests that still described AVFoundation as the primary decoder with FFmpeg as fallback now describe the FFmpeg-only reality. Empty untracked leftover dirs (`Sources/`, `Resources/`, `SpeakerTool/`) removed from the working tree.
+- **Docs.** README rewritten for 1.1.0: no Pricing table, no CLI / `Products.storekit` leftovers, architecture tree matches the files that actually exist, diarization status noted. `docs/privacy.md`: Subscriptions section removed, FFmpeg-only decoding described accurately (the AVFoundation-first wording had been stale since April), "no temp files" storage wording, open-source pointer added. `Private/APPSTORE-LISTING.md` and `Private/MACAPPSTORE-HOWTO.md` (gitignored) updated for a free app: subscription product retirement steps, new review notes, screenshot refresh list, IAP capability removal.
+
+### Why
+
+The subscription never justified its plumbing. Making the project fully open source (MIT, public GitHub repo) with no paywall is simpler to maintain, simpler to review, and honest about where the real cost is: xAI bills the user's own API key for audio minutes, and xTranscript charges nothing.
+
+### Before submitting 1.1.0 (manual, App Store Connect side)
+
+1. Retire the `yearly` subscription product (delete if never approved, else Remove from Sale) and make sure nothing IAP-related is attached to the 1.1.0 version.
+2. Remove the In-App Purchase capability from the target in Xcode if it was carried over.
+3. Retake the screenshots that show the sidebar (`Main.png`, `Main-DarkMode.png`); drop `Subscription.png`.
+4. Paste the updated review notes from the HOWTO §11, with a fresh throwaway xAI key.
+
+## 2026-04-25 — Freemium ($9.99/yr Pro) + drop the CLI
 
 ### What was done
 
